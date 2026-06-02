@@ -235,7 +235,7 @@
 
     var nameF = fonts.kaName;     // LGV Anastasia (name)
     var courseF = fonts.kaCourse; // BPG Calibri (course line)
-    var dateF = fonts.kaDate;     // BPG Calibri Bold (dates)
+    var dateF = fonts.kaDate;     // BPG Calibri (dates)
     drawLine(page, String(row.firstName || ''), nameF, L.name.x, L.name.line1, L.name.size, L.name.maxWidth, L.name.color, rgb);
     drawLine(page, String(row.lastName || ''), nameF, L.name.x, L.name.line1 - L.name.lineGap, L.name.size, L.name.maxWidth, L.name.color, rgb);
 
