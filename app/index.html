@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Levels Academy — Certificate Maker</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="head">
+      <h1>Certificate Maker</h1>
+      <p class="sub">Upload an Excel file, pick a template, and generate every certificate as one print-ready PDF.</p>
+    </header>
+
+    <!-- Step 1: template -->
+    <section class="card">
+      <h2><span class="step">1</span> Choose a template</h2>
+      <div class="templates" id="templates"></div>
+    </section>
+
+    <!-- Step 2: data -->
+    <section class="card">
+      <h2><span class="step">2</span> Upload your Excel file</h2>
+      <div class="cols-note" id="colsNote"></div>
+      <p class="hint">
+        Need the right column headers? <a href="#" id="sampleLink">Download a sample Excel</a> for this template,
+        fill it in, and upload it back.
+      </p>
+      <div class="drop" id="drop">
+        <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden />
+        <div class="drop-inner">
+          <strong>Drag &amp; drop</strong> your <code>.xlsx</code> here, or
+          <button type="button" class="link-btn" id="browseBtn">browse</button>
+          <div class="drop-file" id="dropFile"></div>
+        </div>
+      </div>
+      <div id="preview" class="preview"></div>
+    </section>
+
+    <!-- Step 3: generate -->
+    <section class="card">
+      <h2><span class="step">3</span> Generate &amp; print</h2>
+      <div class="actions">
+        <button type="button" id="generateBtn" class="primary" disabled>Generate certificates</button>
+        <button type="button" id="printBtn" class="ghost" disabled>Print all</button>
+        <a id="downloadBtn" class="ghost disabled" download="certificates.pdf">Download PDF</a>
+      </div>
+      <div id="status" class="status" role="status"></div>
+      <iframe id="pdfFrame" class="pdf-frame" title="Certificate preview" style="display:none"></iframe>
+    </section>
+
+    <footer class="foot">
+      <span id="footnote"></span>
+    </footer>
+  </main>
+
+  <!-- bundled libraries (no external CDN needed) -->
+  <script src="./vendor/xlsx.full.min.js"></script>
+  <script src="./vendor/pdf-lib.min.js"></script>
+  <script src="./vendor/fontkit.umd.min.js"></script>
+  <script src="./js/certgen.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

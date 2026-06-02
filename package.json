@@ -1,0 +1,16 @@
+{
+  "name": "certificate-maker",
+  "version": "1.0.0",
+  "description": "Client-side certificate batch generator: Excel + template PDF -> one print-ready PDF.",
+  "private": true,
+  "scripts": {
+    "serve": "cd app && python3 -m http.server 8080",
+    "test:render": "node tools/test-render.js",
+    "test:e2e": "node tools/e2e.js",
+    "samples": "node tools/mk-samples.js"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "playwright-core": "^1.60.0"
+  }
+}
