@@ -40,11 +40,10 @@
   var FONT_FILES = {
     rhmed: 'RedHatDisplay-Medium.ttf',   // English — name
     rhbold: 'RedHatDisplay-Bold.ttf',    // English — course / level / dates
-    // Georgian slots. The files below are Noto Sans Georgian stand-ins; to match
-    // the originals exactly, just overwrite each file (keep the same name):
-    kaName: 'georgian-name.ttf',    // → LGV Anastasia 2025 Geo Bold (the name)
-    kaCourse: 'georgian-course.ttf', // → BPG Calibri (the course line)
-    kaDate: 'georgian-date.ttf'     // → BPG Calibri Bold (the period dates)
+    // Georgian — the original fonts.
+    kaName: 'LGVAnastasia2025Geo-Bold.ttf', // the name (coral)
+    kaCourse: 'BPGCalibri.ttf',             // the course line
+    kaDate: 'BPGCalibri.ttf'                // the period dates (same BPG Calibri)
   };
 
   var FONTS_FOR_KIND = {
@@ -100,17 +99,17 @@
     },
     ka: {
       name: {
-        x: 197.34, line1: 414, lineGap: 37, size: 27.5, font: 'nsgbold',
+        x: 197.34, line1: 401.2, lineGap: 37, size: 49.7, font: 'kaName',
         color: CORAL, maxWidth: 600,
         whiteout: { x0: 194, y0: 146, x1: 630, y1: 231 }
       },
       courseLine: {
-        x: 197.34, baseline: 321, size: 13.9, font: 'nsgreg', color: INK,
+        x: 197.34, baseline: 325.3, size: 16, font: 'kaCourse', color: INK,
         maxWidth: 430,
         whiteout: { x0: 195, y0: 254, x1: 645, y1: 282 }
       },
       period: {
-        x: 197.34, line1: 240.5, line2: 222.5, size: 12.8, font: 'nsgbold', color: INK_DARK,
+        x: 197.34, line1: 243.7, line2: 225.7, size: 14.9, font: 'kaDate', color: INK_DARK,
         maxWidth: 200,
         whiteout: { x0: 195, y0: 338, x1: 425, y1: 379 }
       }

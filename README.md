@@ -29,27 +29,20 @@ Long names/courses auto-shrink to stay inside their column.
 
 ### Fonts
 
-| Template | Field | Font used |
+All fields use the original fonts, embedded in `app/fonts/`:
+
+| Template | Field | Font file |
 |---|---|---|
-| English (1 & 2) | Name | Red Hat Display **Medium** |
-| English (1 & 2) | Course / Level / Period | Red Hat Display **Bold** |
-| Georgian (3) | Name | `georgian-name.ttf` |
-| Georgian (3) | Course line | `georgian-course.ttf` |
-| Georgian (3) | Period dates | `georgian-date.ttf` |
+| English (1 & 2) | Name | `RedHatDisplay-Medium.ttf` |
+| English (1 & 2) | Course / Level / Period | `RedHatDisplay-Bold.ttf` |
+| Georgian (3) | Name (coral) | `LGVAnastasia2025Geo-Bold.ttf` |
+| Georgian (3) | Course line | `BPGCalibri.ttf` |
+| Georgian (3) | Period dates | `BPGCalibri.ttf` |
 
-The English fonts are the real ones (Red Hat Display is open-source). The three
-Georgian files are currently **Noto Sans Georgian stand-ins**. To match the
-original artwork exactly, overwrite each file in `app/fonts/` (keep the same
-name) with the proprietary font:
-
-- `georgian-name.ttf`   ← **LGV Anastasia 2025 Geo Bold**
-- `georgian-course.ttf` ← **BPG Calibri**
-- `georgian-date.ttf`   ← **BPG Calibri Bold**
-
-(The "levels academy" logo font, *Archy EDT Bold*, is part of the template
-background and never re-drawn, so it isn't needed here.) After swapping, the
-name/date sizes may need a small calibration tweak in `app/js/certgen.js`
-(`LAYOUT.ka`) since the new fonts have different proportions.
+Sizes and baselines are calibrated against the original artwork in
+`app/js/certgen.js` (`LAYOUT`). The "levels academy" logo font (*Archy EDT
+Bold*) lives in the template background and is never re-drawn, so the app
+doesn't load it.
 
 ## Spreadsheet columns
 
