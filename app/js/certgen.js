@@ -34,15 +34,21 @@
   };
 
   // Fonts each template needs (key -> filename under app/fonts/).
+  // English uses Red Hat Display Medium (name) and Bold (values/dates).
+  // Georgian currently uses Noto Sans Georgian as a stand-in for the
+  // proprietary BPG Calibri / LGV Anastasia fonts (swap the files to match).
   var FONT_FILES = {
-    rhlight: 'RedHatDisplay-Light.ttf',
-    nsgbold: 'NotoSansGeorgian-Bold.ttf',
-    nsgreg: 'NotoSansGeorgian-Regular.ttf'
+    rhmed: 'RedHatDisplay-Medium.ttf',   // English — name
+    rhbold: 'RedHatDisplay-Bold.ttf',    // English — course / level / dates
+    // Georgian — the original fonts.
+    kaName: 'LGVAnastasia2025Geo-Bold.ttf', // the name (coral)
+    kaCourse: 'BPGCalibri.ttf',             // the course line
+    kaDate: 'BPGCalibri.ttf'                // the period dates (same BPG Calibri)
   };
 
   var FONTS_FOR_KIND = {
-    en: ['rhlight'],
-    ka: ['nsgbold', 'nsgreg']
+    en: ['rhmed', 'rhbold'],
+    ka: ['kaName', 'kaCourse', 'kaDate']
   };
 
   // Expected spreadsheet columns per kind (used for validation, previews and
@@ -71,39 +77,39 @@
   var LAYOUT = {
     en: {
       name: {
-        x: 197.34, line1: 405.5, lineGap: 38.7, size: 48, font: 'rhlight',
+        x: 197.34, line1: 405.5, lineGap: 38.7, size: 46, font: 'rhmed',
         color: INK, maxWidth: 600, upper: true,
         whiteout: { x0: 194, y0: 142, x1: 650, y1: 241 }
       },
       course: {
-        x: 197.34, baseline: 239.5, size: 15.5, font: 'rhlight', color: INK,
+        x: 197.34, baseline: 239.5, size: 14.8, font: 'rhbold', color: INK,
         maxWidth: 214, upper: true,
         whiteout: { x0: 195, y0: 339, x1: 417, y1: 360 }
       },
       level: {
-        x: 420.94, baseline: 239.5, size: 15.5, font: 'rhlight', color: INK,
+        x: 420.94, baseline: 239.5, size: 14.8, font: 'rhbold', color: INK,
         maxWidth: 218, upper: true,
         whiteout: { x0: 419, y0: 339, x1: 642, y1: 360 }
       },
       period: {
-        x: 644.55, line1: 240, line2: 224, size: 15.5, font: 'rhlight', color: INK,
+        x: 644.55, line1: 240, line2: 224, size: 14.8, font: 'rhbold', color: INK,
         maxWidth: 190, upper: true,
         whiteout: { x0: 642, y0: 339, x1: 825, y1: 377 }
       }
     },
     ka: {
       name: {
-        x: 197.34, line1: 414, lineGap: 37, size: 27.5, font: 'nsgbold',
+        x: 197.34, line1: 401.2, lineGap: 37, size: 49.7, font: 'kaName',
         color: CORAL, maxWidth: 600,
         whiteout: { x0: 194, y0: 146, x1: 630, y1: 231 }
       },
       courseLine: {
-        x: 197.34, baseline: 321, size: 13.9, font: 'nsgreg', color: INK,
+        x: 197.34, baseline: 325.3, size: 16, font: 'kaCourse', color: INK,
         maxWidth: 430,
         whiteout: { x0: 195, y0: 254, x1: 645, y1: 282 }
       },
       period: {
-        x: 197.34, line1: 240.5, line2: 222.5, size: 12.8, font: 'nsgbold', color: INK_DARK,
+        x: 197.34, line1: 243.7, line2: 225.7, size: 14.9, font: 'kaDate', color: INK_DARK,
         maxWidth: 200,
         whiteout: { x0: 195, y0: 338, x1: 425, y1: 379 }
       }
@@ -207,36 +213,38 @@
     var L = LAYOUT.en;
     [L.name, L.course, L.level, L.period].forEach(function (f) { whiteout(page, f.whiteout, rgb); });
 
-    var rh = fonts.rhlight;
+    var med = fonts.rhmed;   // name
+    var bold = fonts.rhbold; // course / level / dates
     var first = (row.firstName || '').toString();
     var last = (row.lastName || '').toString();
-    drawLine(page, first.toUpperCase(), rh, L.name.x, L.name.line1, L.name.size, L.name.maxWidth, L.name.color, rgb);
-    drawLine(page, last.toUpperCase(), rh, L.name.x, L.name.line1 - L.name.lineGap, L.name.size, L.name.maxWidth, L.name.color, rgb);
+    drawLine(page, first.toUpperCase(), med, L.name.x, L.name.line1, L.name.size, L.name.maxWidth, L.name.color, rgb);
+    drawLine(page, last.toUpperCase(), med, L.name.x, L.name.line1 - L.name.lineGap, L.name.size, L.name.maxWidth, L.name.color, rgb);
 
-    drawLine(page, String(row.course || '').toUpperCase(), rh, L.course.x, L.course.baseline, L.course.size, L.course.maxWidth, L.course.color, rgb);
-    drawLine(page, String(row.level || '').toUpperCase(), rh, L.level.x, L.level.baseline, L.level.size, L.level.maxWidth, L.level.color, rgb);
+    drawLine(page, String(row.course || '').toUpperCase(), bold, L.course.x, L.course.baseline, L.course.size, L.course.maxWidth, L.course.color, rgb);
+    drawLine(page, String(row.level || '').toUpperCase(), bold, L.level.x, L.level.baseline, L.level.size, L.level.maxWidth, L.level.color, rgb);
 
     var start = formatDate(row.startDate, 'en');
     var end = formatDate(row.endDate, 'en');
-    drawLine(page, end ? start + ' –' : start, rh, L.period.x, L.period.line1, L.period.size, L.period.maxWidth, L.period.color, rgb);
-    drawLine(page, end, rh, L.period.x, L.period.line2, L.period.size, L.period.maxWidth, L.period.color, rgb);
+    drawLine(page, end ? start + ' –' : start, bold, L.period.x, L.period.line1, L.period.size, L.period.maxWidth, L.period.color, rgb);
+    drawLine(page, end, bold, L.period.x, L.period.line2, L.period.size, L.period.maxWidth, L.period.color, rgb);
   }
 
   function drawGeorgian(page, row, fonts, rgb) {
     var L = LAYOUT.ka;
     [L.name, L.courseLine, L.period].forEach(function (f) { whiteout(page, f.whiteout, rgb); });
 
-    var bold = fonts.nsgbold;
-    var reg = fonts.nsgreg;
-    drawLine(page, String(row.firstName || ''), bold, L.name.x, L.name.line1, L.name.size, L.name.maxWidth, L.name.color, rgb);
-    drawLine(page, String(row.lastName || ''), bold, L.name.x, L.name.line1 - L.name.lineGap, L.name.size, L.name.maxWidth, L.name.color, rgb);
+    var nameF = fonts.kaName;     // LGV Anastasia (name)
+    var courseF = fonts.kaCourse; // BPG Calibri (course line)
+    var dateF = fonts.kaDate;     // BPG Calibri (dates)
+    drawLine(page, String(row.firstName || ''), nameF, L.name.x, L.name.line1, L.name.size, L.name.maxWidth, L.name.color, rgb);
+    drawLine(page, String(row.lastName || ''), nameF, L.name.x, L.name.line1 - L.name.lineGap, L.name.size, L.name.maxWidth, L.name.color, rgb);
 
-    drawLine(page, String(row.courseLine || ''), reg, L.courseLine.x, L.courseLine.baseline, L.courseLine.size, L.courseLine.maxWidth, L.courseLine.color, rgb);
+    drawLine(page, String(row.courseLine || ''), courseF, L.courseLine.x, L.courseLine.baseline, L.courseLine.size, L.courseLine.maxWidth, L.courseLine.color, rgb);
 
     var start = formatDate(row.startDate, 'ka');
     var end = formatDate(row.endDate, 'ka');
-    drawLine(page, end ? start + ' -' : start, bold, L.period.x, L.period.line1, L.period.size, L.period.maxWidth, L.period.color, rgb);
-    drawLine(page, end, bold, L.period.x, L.period.line2, L.period.size, L.period.maxWidth, L.period.color, rgb);
+    drawLine(page, end ? start + ' -' : start, dateF, L.period.x, L.period.line1, L.period.size, L.period.maxWidth, L.period.color, rgb);
+    drawLine(page, end, dateF, L.period.x, L.period.line2, L.period.size, L.period.maxWidth, L.period.color, rgb);
   }
 
   // --- public API ------------------------------------------------------------

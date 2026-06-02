@@ -23,11 +23,26 @@ single-page template PDFs. For each spreadsheet row the app:
 
 - draws the original template (logo, seal, decorations, colours — pixel-perfect),
 - covers the sample text baked into the template with white boxes,
-- writes the new values at calibrated positions using embedded fonts
-  (**Red Hat Display** for English, **Noto Sans Georgian** for Georgian — close
-  free substitutes for the originals' Red Hat Display / BPG / LGV fonts).
+- writes the new values at calibrated positions using embedded fonts.
 
 Long names/courses auto-shrink to stay inside their column.
+
+### Fonts
+
+All fields use the original fonts, embedded in `app/fonts/`:
+
+| Template | Field | Font file |
+|---|---|---|
+| English (1 & 2) | Name | `RedHatDisplay-Medium.ttf` |
+| English (1 & 2) | Course / Level / Period | `RedHatDisplay-Bold.ttf` |
+| Georgian (3) | Name (coral) | `LGVAnastasia2025Geo-Bold.ttf` |
+| Georgian (3) | Course line | `BPGCalibri.ttf` |
+| Georgian (3) | Period dates | `BPGCalibri.ttf` |
+
+Sizes and baselines are calibrated against the original artwork in
+`app/js/certgen.js` (`LAYOUT`). The "levels academy" logo font (*Archy EDT
+Bold*) lives in the template background and is never re-drawn, so the app
+doesn't load it.
 
 ## Spreadsheet columns
 
