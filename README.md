@@ -23,11 +23,33 @@ single-page template PDFs. For each spreadsheet row the app:
 
 - draws the original template (logo, seal, decorations, colours — pixel-perfect),
 - covers the sample text baked into the template with white boxes,
-- writes the new values at calibrated positions using embedded fonts
-  (**Red Hat Display** for English, **Noto Sans Georgian** for Georgian — close
-  free substitutes for the originals' Red Hat Display / BPG / LGV fonts).
+- writes the new values at calibrated positions using embedded fonts.
 
 Long names/courses auto-shrink to stay inside their column.
+
+### Fonts
+
+| Template | Field | Font used |
+|---|---|---|
+| English (1 & 2) | Name | Red Hat Display **Medium** |
+| English (1 & 2) | Course / Level / Period | Red Hat Display **Bold** |
+| Georgian (3) | Name | `georgian-name.ttf` |
+| Georgian (3) | Course line | `georgian-course.ttf` |
+| Georgian (3) | Period dates | `georgian-date.ttf` |
+
+The English fonts are the real ones (Red Hat Display is open-source). The three
+Georgian files are currently **Noto Sans Georgian stand-ins**. To match the
+original artwork exactly, overwrite each file in `app/fonts/` (keep the same
+name) with the proprietary font:
+
+- `georgian-name.ttf`   ← **LGV Anastasia 2025 Geo Bold**
+- `georgian-course.ttf` ← **BPG Calibri**
+- `georgian-date.ttf`   ← **BPG Calibri Bold**
+
+(The "levels academy" logo font, *Archy EDT Bold*, is part of the template
+background and never re-drawn, so it isn't needed here.) After swapping, the
+name/date sizes may need a small calibration tweak in `app/js/certgen.js`
+(`LAYOUT.ka`) since the new fonts have different proportions.
 
 ## Spreadsheet columns
 
