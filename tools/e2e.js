@@ -32,9 +32,9 @@ const server = http.createServer((req, res) => {
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
 
   const results = {};
-  for (const id of ['1', '3']) {
+  for (const id of ['1', '2', '3']) {
     await page.click(`.tpl[data-id="${id}"]`);
-    const kind = id === '3' ? 'ka' : 'en';
+    const variant = id === '3' ? 'nolevel' : 'full';
     const sample = path.join(ROOT, 'samples', `certificate-template-${id}-sample.xlsx`);
     await page.setInputFiles('#file', sample);
     await page.waitForFunction(() => !document.getElementById('generateBtn').disabled, { timeout: 5000 });
@@ -43,7 +43,7 @@ const server = http.createServer((req, res) => {
     await page.waitForFunction(() => /Done/.test(document.getElementById('status').textContent), { timeout: 15000 });
     const status = await page.textContent('#status');
     const dl = await page.getAttribute('#downloadBtn', 'href');
-    results['template' + id] = { kind, count: count.trim(), status: status.trim(), pdfBlob: dl && dl.startsWith('blob:') };
+    results['template' + id] = { variant, count: count.trim(), status: status.trim(), pdfBlob: dl && dl.startsWith('blob:') };
   }
 
   await browser.close();

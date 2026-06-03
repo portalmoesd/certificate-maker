@@ -5,8 +5,8 @@ batch of finished certificates as a single print-ready PDF.
 
 Workflow:
 
-1. **Choose a template** (Template 1 – yellow English, Template 2 – blue English,
-   Template 3 – coral Georgian).
+1. **Choose a template** (Template 1 – yellow, Template 2 – blue, Template 3 – red).
+   All three are English; the red one has no LEVEL field.
 2. **Upload an Excel file** (`.xlsx`/`.csv`) with one row per person.
 3. The app fills each certificate, merges them into **one PDF**, shows a preview,
    and lets you **Print all** or **Download**.
@@ -21,50 +21,52 @@ which is why it embeds cleanly in a Wix `iframe`.
 The original artwork (`certificate templates.pdf`) is split into three
 single-page template PDFs. For each spreadsheet row the app:
 
-- draws the original template (logo, seal, decorations, colours — pixel-perfect),
+- draws the original template (logo, Cambridge badge, seal, colours — pixel-perfect),
 - covers the sample text baked into the template with white boxes,
-- writes the new values at calibrated positions using embedded fonts.
+- writes the new values at calibrated positions using embedded fonts,
+- stamps the principal's signature (`app/signature.png`) above the PRINCIPAL label.
 
 Long names/courses auto-shrink to stay inside their column.
 
 ### Fonts
 
-All fields use the original fonts, embedded in `app/fonts/`:
+All text uses the original Red Hat Display, embedded in `app/fonts/`:
 
-| Template | Field | Font file |
-|---|---|---|
-| English (1 & 2) | Name | `RedHatDisplay-Medium.ttf` |
-| English (1 & 2) | Course / Level / Period | `RedHatDisplay-Bold.ttf` |
-| Georgian (3) | Name (coral) | `LGVAnastasia2025Geo-Bold.ttf` |
-| Georgian (3) | Course line | `BPGCalibri.ttf` |
-| Georgian (3) | Period dates | `BPGCalibri.ttf` |
+| Field | Font file |
+|---|---|
+| Name | `RedHatDisplay-Medium.ttf` |
+| Course / Level / Period | `RedHatDisplay-Bold.ttf` |
 
 Sizes and baselines are calibrated against the original artwork in
-`app/js/certgen.js` (`LAYOUT`). The "levels academy" logo font (*Archy EDT
-Bold*) lives in the template background and is never re-drawn, so the app
-doesn't load it.
+`app/js/certgen.js` (`LAYOUT`).
+
+### Signature
+
+`app/signature.png` (transparent PNG) is drawn above the PRINCIPAL label on every
+certificate. To change the signer, just replace that file. It's optional — if the
+file is missing, certificates still generate without it.
 
 ## Spreadsheet columns
 
 Headers are matched case- and spacing-insensitively. Download a ready-made
 sample from inside the app, or from `app/samples/`.
 
-**Templates 1 & 2 (English)**
+**Templates 1 & 2 (yellow, blue)**
 
 | First Name | Last Name | Course | Level | Start Date | End Date |
 |---|---|---|---|---|---|
 | Elizaveta | Datukishvili | General English | Intermediate | 2026-01-16 | 2026-06-16 |
 
-**Template 3 (Georgian)**
+**Template 3 (red — no level)**
 
-| First Name | Last Name | Course Line | Start Date | End Date |
+| First Name | Last Name | Course | Start Date | End Date |
 |---|---|---|---|---|
-| ელიზავეტა | დათუკიშვილს | ხატვის კურსის წარმატებით დასრულებისთვის | 2026-01-16 | 2026-06-16 |
+| Elizaveta | Datukishvili | General English | 2026-01-16 | 2026-06-16 |
 
 Notes:
 - **Dates** may be real Excel dates or text. Real dates are formatted
-  automatically (`16 JANUARY 2026` / `16 იანვარი 2026`); text is used as typed.
-- English names/courses are shown in UPPERCASE automatically (matching the design).
+  automatically (`16 JANUARY 2026`); text is used as typed.
+- Names/courses are shown in UPPERCASE automatically (matching the design).
 - A single `Name` column also works — it's split into first/last on the space.
 
 ## Project layout
@@ -76,7 +78,8 @@ app/                     ← the deployable site (this whole folder is static)
   js/app.js              ← browser UI
   js/certgen.js          ← core generator (shared with the Node tests)
   vendor/                ← pdf-lib, fontkit, SheetJS (bundled, no CDN needed)
-  fonts/                 ← Red Hat Display + Noto Sans Georgian (.ttf)
+  fonts/                 ← Red Hat Display Medium + Bold (.ttf)
+  signature.png          ← principal signature, stamped above PRINCIPAL
   templates/             ← template1.pdf, template2.pdf, template3.pdf
   samples/               ← downloadable example spreadsheets
 tools/                   ← dev/test only, NOT needed for deployment
