@@ -63,8 +63,10 @@
     x: 197.34, line1: 405.5, lineGap: 38.7, size: 46, font: 'rhmed', color: INK,
     maxWidth: 600, whiteout: { x0: 194, y0: 142, x1: 650, y1: 241 }
   };
-  // Principal signature image: sits just above the "PRINCIPAL" label.
-  var SIGNATURE = { x: 197.34, bottomY: 62, width: 185 };
+  // Principal signature image: left edge aligns with the "P" of PRINCIPAL,
+  // sitting just above the label. (signature.png is pre-trimmed of transparent
+  // margins so its first stroke is at the left edge.)
+  var SIGNATURE = { x: 197.34, bottomY: 66, width: 150 };
 
   // Field placement per variant. Bottom-left origin; whiteouts are top-origin.
   var LAYOUT = {
