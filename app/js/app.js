@@ -17,7 +17,8 @@
 
   // simple in-memory caches so we don't re-fetch assets
   var templateCache = {};
-  var fontCache = {};
+  var fontBytesPromise = null;
+  var signaturePromise = null;
 
   var el = {
     templates: document.getElementById('templates'),
@@ -53,16 +54,24 @@
     });
   }
 
-  function loadFonts(kind) {
-    var keys = CertGen.FONTS_FOR_KIND[kind];
-    return Promise.all(keys.map(function (k) {
-      if (fontCache[k]) return Promise.resolve();
-      return fetchBytes('./fonts/' + CertGen.FONT_FILES[k]).then(function (b) { fontCache[k] = b; });
-    })).then(function () {
+  function loadFonts() {
+    if (fontBytesPromise) return fontBytesPromise;
+    fontBytesPromise = Promise.all(CertGen.FONT_KEYS.map(function (k) {
+      return fetchBytes('./fonts/' + CertGen.FONT_FILES[k]).then(function (b) { return [k, b]; });
+    })).then(function (pairs) {
       var out = {};
-      keys.forEach(function (k) { out[k] = fontCache[k]; });
+      pairs.forEach(function (p) { out[p[0]] = p[1]; });
       return out;
     });
+    return fontBytesPromise;
+  }
+
+  // The principal's signature is optional — if it's missing, certificates are
+  // still generated (just without it).
+  function loadSignature() {
+    if (signaturePromise) return signaturePromise;
+    signaturePromise = fetchBytes('./signature.png').catch(function () { return null; });
+    return signaturePromise;
   }
 
   // ---- UI: templates --------------------------------------------------------
@@ -81,7 +90,7 @@
         '<div class="body">' +
           '<div class="name">' + t.label + '</div>' +
           '<div class="meta">' + t.accentName + ' accent</div>' +
-          '<span class="lang">' + (t.kind === 'ka' ? 'Georgian' : 'English') + '</span>' +
+          '<span class="lang">' + (t.variant === 'nolevel' ? 'No level field' : 'Course + Level') + '</span>' +
         '</div>';
       card.addEventListener('click', function () { selectTemplate(id); });
       el.templates.appendChild(card);
@@ -100,12 +109,13 @@
     refreshButtons();
     // warm caches in the background
     loadTemplate(id).catch(function () {});
-    loadFonts(CertGen.TEMPLATES[id].kind).catch(function () {});
+    loadFonts().catch(function () {});
+    loadSignature();
   }
 
   function renderColumns(id) {
-    var kind = CertGen.TEMPLATES[id].kind;
-    var cols = CertGen.COLUMNS[kind];
+    var variant = CertGen.TEMPLATES[id].variant;
+    var cols = CertGen.COLUMNS[variant];
     el.colsNote.innerHTML = '<span style="font-size:13px;color:#555;margin-right:4px">Expected columns:</span>';
     cols.forEach(function (c) {
       var chip = document.createElement('span');
@@ -117,17 +127,15 @@
 
   // ---- sample excel ---------------------------------------------------------
 
-  function buildSampleWorkbook(kind) {
-    var cols = CertGen.COLUMNS[kind];
+  function buildSampleWorkbook(variant) {
+    var cols = CertGen.COLUMNS[variant];
     var header = cols.map(function (c) { return c.label; });
-    var rows = [header];
-    // two example rows
-    rows.push(cols.map(function (c) { return c.sample; }));
-    var alt = {
-      en: { firstName: 'GIORGI', lastName: 'BERIDZE', course: 'General English', level: 'Beginner', startDate: '2026-02-01', endDate: '2026-07-01' },
-      ka: { firstName: 'გიორგი', lastName: 'ბერიძეს', courseLine: 'ინგლისური ენის კურსის წარმატებით დასრულებისთვის', startDate: '2026-02-01', endDate: '2026-07-01' }
-    }[kind];
-    rows.push(cols.map(function (c) { return alt[c.key]; }));
+    var alt = { firstName: 'GIORGI', lastName: 'BERIDZE', course: 'General English', level: 'Beginner', startDate: '2026-02-01', endDate: '2026-07-01' };
+    var rows = [
+      header,
+      cols.map(function (c) { return c.sample; }),
+      cols.map(function (c) { return alt[c.key]; })
+    ];
     var ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = cols.map(function () { return { wch: 22 }; });
     var wb = XLSX.utils.book_new();
@@ -138,9 +146,8 @@
   function downloadSample(e) {
     e.preventDefault();
     if (!state.templateId) { setStatus('Pick a template first.', 'err'); return; }
-    var kind = CertGen.TEMPLATES[state.templateId].kind;
-    var wb = buildSampleWorkbook(kind);
-    XLSX.writeFile(wb, 'certificate-template-' + state.templateId + '-sample.xlsx');
+    var variant = CertGen.TEMPLATES[state.templateId].variant;
+    XLSX.writeFile(buildSampleWorkbook(variant), 'certificate-template-' + state.templateId + '-sample.xlsx');
   }
 
   // ---- file handling --------------------------------------------------------
@@ -167,8 +174,8 @@
 
   function mapAndPreview() {
     if (!state.templateId) { renderPreview(); refreshButtons(); return; }
-    var kind = CertGen.TEMPLATES[state.templateId].kind;
-    state.rows = CertGen.mapRows(state.rawRows, kind);
+    var variant = CertGen.TEMPLATES[state.templateId].variant;
+    state.rows = CertGen.mapRows(state.rawRows, variant);
     renderPreview();
     refreshButtons();
   }
@@ -180,8 +187,7 @@
       el.preview.innerHTML = '<div class="warn">Choose a template above to map these columns.</div>';
       return;
     }
-    var kind = CertGen.TEMPLATES[state.templateId].kind;
-    var cols = CertGen.COLUMNS[kind];
+    var cols = CertGen.COLUMNS[CertGen.TEMPLATES[state.templateId].variant];
 
     var count = document.createElement('div');
     count.className = 'count';
@@ -196,7 +202,7 @@
       var r = state.rows[i];
       body += '<tr>' + cols.map(function (c) {
         var v = r[c.key];
-        if ((c.key === 'startDate' || c.key === 'endDate')) v = CertGen.formatDate(v, kind);
+        if ((c.key === 'startDate' || c.key === 'endDate')) v = CertGen.formatDate(v);
         return '<td>' + escapeHtml(v == null ? '' : String(v)) + '</td>';
       }).join('') + '</tr>';
     }
@@ -243,14 +249,14 @@
     setStatus('Generating ' + state.rows.length + ' certificate(s)…');
 
     var id = state.templateId;
-    var kind = CertGen.TEMPLATES[id].kind;
 
-    Promise.all([loadTemplate(id), loadFonts(kind)])
+    Promise.all([loadTemplate(id), loadFonts(), loadSignature()])
       .then(function (res) {
         return CertGen.generate({
           templateId: id,
           templateBytes: res[0],
           fontBytes: res[1],
+          signatureBytes: res[2],
           rows: state.rows,
           PDFLib: PDFLib,
           fontkit: fontkit
