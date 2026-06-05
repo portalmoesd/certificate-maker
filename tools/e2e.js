@@ -32,9 +32,9 @@ const server = http.createServer((req, res) => {
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
 
   const results = {};
-  for (const id of ['1', '2', '3']) {
+  for (const id of ['1', '2', '3', '4']) {
     await page.click(`.tpl[data-id="${id}"]`);
-    const variant = id === '3' ? 'courseonly' : 'full';
+    const variant = { '1': 'full', '2': 'full', '3': 'courseonly', '4': 'kacourse' }[id];
     const sample = path.join(ROOT, 'samples', `certificate-template-${id}-sample.xlsx`);
     await page.setInputFiles('#file', sample);
     await page.waitForFunction(() => !document.getElementById('generateBtn').disabled, { timeout: 5000 });

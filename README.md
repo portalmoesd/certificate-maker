@@ -6,8 +6,9 @@ batch of finished certificates as a single print-ready PDF.
 Workflow:
 
 1. **Choose a template** (Template 1 – yellow English, Template 2 – blue English,
-   Template 3 – red Art). The red (Art) one shows the **course only** — no LEVEL
-   or HOURS fields.
+   Template 3 – red Art, Template 4 – Georgian Art). The two Art templates show
+   the **course only** — no LEVEL or HOURS fields. Template 4 is fully Georgian
+   (Georgian fonts, labels and month names).
 2. **Upload an Excel file** (`.xlsx`/`.csv`) with one row per person.
 3. **Set the certificate numbering** — branch (Vake/Krtsanisi) and the starting
    sequence number.
@@ -21,7 +22,7 @@ which is why it embeds cleanly in a Wix `iframe`.
 
 ## How it works
 
-The original artwork (`certificate templates(3).pdf`) is split into three
+The original artwork (`certificate templates(3).pdf`) is split into four
 single-page template PDFs which are then **cleaned** of their sample values by
 `tools/clean-templates.py` (text-only redaction — the watermark and all graphics
 are kept). For each spreadsheet row the app:
@@ -40,7 +41,7 @@ Whenever the source artwork changes, re-run:
 
 ```bash
 pdfseparate "certificate templates(3).pdf" app/templates/template-%d.pdf
-mv app/templates/template-1.pdf app/templates/template1.pdf   # 2, 3 likewise
+mv app/templates/template-1.pdf app/templates/template1.pdf   # 2, 3, 4 likewise
 python3 tools/clean-templates.py     # strips sample values, keeps the watermark
 ```
 
@@ -53,9 +54,14 @@ Embedded in `app/fonts/`:
 
 | Field | Font file |
 |---|---|
-| Name | `RedHatDisplay-Medium.ttf` |
-| Course / Level / Hours / Period | `calibri-bold.ttf` (Calibri Bold) |
-| Certificate number | `calibril.ttf` (Calibri Light) |
+| Name (English) | `RedHatDisplay-Medium.ttf` |
+| Course / Level / Hours / Period (English) | `calibri-bold.ttf` (Calibri Bold) |
+| Certificate number (all) | `calibril.ttf` (Calibri Light) |
+| Name (Georgian) | `archyedt-bold-60540591796.otf` (Archy EDT Bold, +50 tracking) |
+| Course / Period (Georgian) | `bpg_le_studio_02_caps-7834001055.ttf` (BPG LE Studio 02 Caps) |
+
+The Georgian BPG face ships no bold cut, so its values are drawn faux-bold (a
+few sub-pixel offset passes ≈ a 0.5pt stroke) to match the artwork.
 
 Sizes and baselines are calibrated against the original artwork in
 `app/js/certgen.js` (`LAYOUT`).
@@ -92,18 +98,26 @@ sample from inside the app, or from `app/samples/`.
 
 | First Name | Last Name | Course | Level | Hours | Start Date | End Date |
 |---|---|---|---|---|---|---|
-| Elizaveta | Datukishvili | General English | Intermediate | 48 | 2026-01-16 | 2026-06-16 |
+| Elizaveta | Datukishvili | General English | Intermediate | 48 | 16.01.2026 | 16.06.2026 |
 
 **Template 3 (red — Art, course only — no level or hours)**
 
 | First Name | Last Name | Course | Start Date | End Date |
 |---|---|---|---|---|
-| Elizaveta | Datukishvili | Drawing & Painting | 2026-01-16 | 2026-06-16 |
+| Elizaveta | Datukishvili | Drawing & Painting | 16.01.2026 | 16.06.2026 |
+
+**Template 4 (Georgian — Art, course only)** — enter the values in Georgian:
+
+| First Name | Last Name | Course | Start Date | End Date |
+|---|---|---|---|---|
+| ელიზავეტა | დათუკიშვილი | ხატვის ინტენსიური კურსი | 16.01.2026 | 16.06.2026 |
 
 Notes:
-- **Dates** may be real Excel dates or text. Real dates are formatted
-  automatically (`16 JANUARY 2026`); text is used as typed.
-- Names/courses are shown in UPPERCASE automatically (matching the design).
+- **Dates** are entered as **`DD.MM.YYYY`** (e.g. `16.01.2026`). They render as
+  `16 JANUARY 2026` on the English templates and `16 იანვარი 2026` on the
+  Georgian one. Real Excel date cells and `YYYY-MM-DD` text are also accepted.
+- On the English templates names/courses are shown in UPPERCASE automatically;
+  the Georgian font is caps-style by design, so its text is used as typed.
 - A single `Name` column also works — it's split into first/last on the space.
 - The certificate number is **not** a spreadsheet column — it's generated (see above).
 
