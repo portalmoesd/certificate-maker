@@ -6,14 +6,14 @@ preserved) so the faint watermark shows through where values used to be.
 
 Run after splitting the source PDF into app/templates/template{1,2,3}.pdf:
 
-    pdfseparate "certificate templates(2).pdf" app/templates/template-%d.pdf
+    pdfseparate "certificate templates(3).pdf" app/templates/template-%d.pdf
     (rename to template1/2/3.pdf)
     python3 tools/clean-templates.py
 
 The rectangles below are top-left origin (points) and sit just *below* each
 label so the labels (COURSE/LEVEL/HOURS/PERIOD/CERTIFICATE NO.) are kept.
-Rects cover all variants; on the red template the empty positions simply
-match nothing.
+Rects cover all variants; on the red (Art) template the LEVEL/HOURS positions
+are empty and simply match nothing — that template carries COURSE only.
 """
 import os
 import sys
@@ -25,12 +25,12 @@ TEMPLATES = ["app/templates/template1.pdf", "app/templates/template2.pdf", "app/
 
 # (x0, y0, x1, y1) top-left origin. Values only — kept clear of the labels above.
 RECTS = [
-    (188, 140, 655, 240),   # name (two lines)
-    (190, 335, 415, 350),   # course value  (also red: course)
-    (415, 335, 640, 350),   # level value   (also red: hours sits here)
-    (640, 335, 778, 350),   # hours value   (yellow/blue)
-    (190, 396.5, 572, 412),  # period (one line)
-    (557, 540.2, 646, 551),  # certificate number
+    (188, 140, 660, 240),   # name (two lines)
+    (192, 335, 415, 350),   # course value  (also red: course)
+    (415, 335, 640, 350),   # level value   (yellow/blue only)
+    (640, 335, 778, 350),   # hours value   (yellow/blue only)
+    (192, 396.5, 578, 412),  # period (one line)
+    (574, 542, 648, 553),   # certificate number (kept clear of the label above)
 ]
 
 

@@ -86,7 +86,7 @@
         '<div class="body">' +
           '<div class="name">' + t.label + '</div>' +
           '<div class="meta">' + t.accentName + ' accent</div>' +
-          '<span class="lang">' + (t.variant === 'nolevel' ? 'No level field' : 'Course + Level') + '</span>' +
+          '<span class="lang">' + (t.variant === 'courseonly' ? 'Course only' : 'Course + Level + Hours') + '</span>' +
         '</div>';
       card.addEventListener('click', function () { selectTemplate(id); });
       el.templates.appendChild(card);

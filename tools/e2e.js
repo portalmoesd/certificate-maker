@@ -34,7 +34,7 @@ const server = http.createServer((req, res) => {
   const results = {};
   for (const id of ['1', '2', '3']) {
     await page.click(`.tpl[data-id="${id}"]`);
-    const variant = id === '3' ? 'nolevel' : 'full';
+    const variant = id === '3' ? 'courseonly' : 'full';
     const sample = path.join(ROOT, 'samples', `certificate-template-${id}-sample.xlsx`);
     await page.setInputFiles('#file', sample);
     await page.waitForFunction(() => !document.getElementById('generateBtn').disabled, { timeout: 5000 });

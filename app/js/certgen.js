@@ -22,8 +22,8 @@
  *   seq     : 4-digit running number from a start value
  *
  * Two layout variants:
- *   'full'    (yellow, blue): COURSE | LEVEL | HOURS , PERIOD
- *   'nolevel' (red)         : COURSE | HOURS , PERIOD
+ *   'full'       (yellow, blue): COURSE | LEVEL | HOURS , PERIOD
+ *   'courseonly' (red / Art)   : COURSE , PERIOD   (no level, no hours)
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
@@ -45,7 +45,7 @@
   var TEMPLATES = {
     '1': { id: '1', variant: 'full', subject: 'E', label: 'Template 1 — Yellow', accent: '#fbc037', accentName: 'Yellow · English', file: 'template1.pdf' },
     '2': { id: '2', variant: 'full', subject: 'E', label: 'Template 2 — Blue', accent: '#365ab1', accentName: 'Blue · English', file: 'template2.pdf' },
-    '3': { id: '3', variant: 'nolevel', subject: 'A', label: 'Template 3 — Red', accent: '#f25468', accentName: 'Red · Art', file: 'template3.pdf' }
+    '3': { id: '3', variant: 'courseonly', subject: 'A', label: 'Template 3 — Red', accent: '#f25468', accentName: 'Red · Art', file: 'template3.pdf' }
   };
 
   // Fonts (key -> filename under app/fonts/).
@@ -68,32 +68,31 @@
   };
   var COLUMNS = {
     full: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.level, BASE_COLS.hours, BASE_COLS.startDate, BASE_COLS.endDate],
-    nolevel: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.hours, BASE_COLS.startDate, BASE_COLS.endDate]
+    courseonly: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate]
   };
 
   // Shared name placement (identical on all three pages).
-  var NAME = { x: 194, line1: 408.5, lineGap: 38.2, size: 40.5, font: 'rhmed', color: INK, maxWidth: 560, whiteout: { x0: 190, y0: 143, x1: 645, y1: 236 } };
+  var NAME = { x: 199, line1: 409.2, lineGap: 37.2, size: 40, font: 'rhmed', color: INK, maxWidth: 560, whiteout: { x0: 195, y0: 143, x1: 650, y1: 236 } };
   // Certificate number + QR (identical on all three pages).
-  var CERTNO = { x: 559.4, baseline: 49.5, size: 10.5, font: 'clight', color: INK, maxWidth: 100, whiteout: { x0: 557, y0: 538.5, x1: 642, y1: 547 } };
-  var QR = { x: 775.7, y: 43.3, size: 24, whiteout: { x0: 772, y0: 524, x1: 803, y1: 556 } };
+  var CERTNO = { x: 576.4, baseline: 46.6, size: 10, font: 'clight', color: INK, maxWidth: 90, whiteout: { x0: 574, y0: 538, x1: 648, y1: 550 } };
+  var QR = { x: 792.5, y: 42.6, size: 24.5, whiteout: { x0: 790, y0: 526, x1: 818, y1: 554 } };
 
   function valueField(x, maxWidth, whiteout) {
-    return { x: x, baseline: 251.1, size: 12.6, font: 'cbold', color: INK, maxWidth: maxWidth, whiteout: whiteout };
+    return { x: x, baseline: 250.4, size: 12, font: 'cbold', color: INK, maxWidth: maxWidth, whiteout: whiteout };
   }
-  var PERIOD = { x: 194, baseline: 189.7, size: 12.75, font: 'cbold', color: INK, maxWidth: 360, whiteout: { x0: 192, y0: 393, x1: 565, y1: 407 } };
+  var PERIOD = { x: 199, baseline: 188.8, size: 12, font: 'cbold', color: INK, maxWidth: 360, whiteout: { x0: 197, y0: 393, x1: 570, y1: 407 } };
 
   var LAYOUT = {
     full: {
       name: NAME,
-      course: valueField(194, 210, { x0: 192, y0: 332, x1: 410, y1: 346 }),
-      level: valueField(417.6, 210, { x0: 415, y0: 332, x1: 635, y1: 346 }),
-      hours: valueField(641.5, 150, { x0: 639, y0: 332, x1: 770, y1: 346 }),
+      course: valueField(199, 210, { x0: 197, y0: 332, x1: 415, y1: 346 }),
+      level: valueField(422.6, 210, { x0: 420, y0: 332, x1: 640, y1: 346 }),
+      hours: valueField(646.5, 130, { x0: 644, y0: 332, x1: 775, y1: 346 }),
       period: PERIOD, certno: CERTNO, qr: QR
     },
-    nolevel: {
+    courseonly: {
       name: NAME,
-      course: valueField(194, 210, { x0: 192, y0: 332, x1: 410, y1: 346 }),
-      hours: valueField(417.6, 200, { x0: 415, y0: 332, x1: 600, y1: 346 }),
+      course: valueField(199, 560, { x0: 197, y0: 332, x1: 600, y1: 346 }),
       period: PERIOD, certno: CERTNO, qr: QR
     }
   };
@@ -209,7 +208,7 @@
 
     drawLine(page, String(row.course || '').toUpperCase(), bold, L.course.x, L.course.baseline, L.course.size, L.course.maxWidth, L.course.color, rgb);
     if (L.level) drawLine(page, String(row.level || '').toUpperCase(), bold, L.level.x, L.level.baseline, L.level.size, L.level.maxWidth, L.level.color, rgb);
-    drawLine(page, String(row.hours || '').trim(), bold, L.hours.x, L.hours.baseline, L.hours.size, L.hours.maxWidth, L.hours.color, rgb);
+    if (L.hours) drawLine(page, String(row.hours || '').trim(), bold, L.hours.x, L.hours.baseline, L.hours.size, L.hours.maxWidth, L.hours.color, rgb);
 
     var start = formatDate(row.startDate), end = formatDate(row.endDate);
     drawLine(page, end ? start + ' - ' + end : start, bold, L.period.x, L.period.baseline, L.period.size, L.period.maxWidth, L.period.color, rgb);
