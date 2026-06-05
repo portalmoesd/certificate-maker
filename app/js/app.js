@@ -8,6 +8,12 @@
   var qrcode = window.qrcode;
   var CertGen = window.CertGen;
 
+  // Registry endpoint (Wix Velo backend). It assigns the certificate numbers
+  // server-side and stores each issued certificate, so numbering is automatic
+  // and never collides across branches/computers. window.REGISTRY_URL can
+  // override it (used by the test harness).
+  var REGISTRY_URL = window.REGISTRY_URL || 'https://www.levels.ge/_functions/issue';
+
   var state = {
     templateId: null,
     rows: [],          // mapped rows
@@ -30,7 +36,7 @@
     dropFile: document.getElementById('dropFile'),
     preview: document.getElementById('preview'),
     branch: document.getElementById('branch'),
-    startNumber: document.getElementById('startNumber'),
+    accessCode: document.getElementById('accessCode'),
     numPrev: document.getElementById('numPrev'),
     generateBtn: document.getElementById('generateBtn'),
     printBtn: document.getElementById('printBtn'),
@@ -102,51 +108,73 @@
     renderColumns(id);
     // re-map any already-loaded rows to this template's schema
     if (state.rawRows.length) mapAndPreview();
-    prefillStartNumber();
+    renderNumbering();
     refreshButtons();
     // warm caches in the background
     loadTemplate(id).catch(function () {});
     loadFonts().catch(function () {});
   }
 
-  // --- remembering the running number ---------------------------------------
-  // Stored in localStorage keyed by the number prefix (e.g. "LVE-2026"), so each
-  // branch/subject/year keeps its own count. When the year changes the prefix
-  // changes, so a new sequence starts automatically.
+  // --- certificate numbering (server-assigned) ------------------------------
+  // The registry assigns the running sequence, so there is nothing to track on
+  // the device. We only remember the branch and the staff access code locally.
 
   function safeStore(get) { try { return get(window.localStorage); } catch (e) { return null; } }
 
-  function numberingPrefix() {
-    if (!state.templateId || !state.rows.length) return null;
-    var first = CertGen.certNumbers(state.templateId, state.rows, el.branch.value, 1)[0];
-    return first.replace(/-\d+$/, ''); // "LVE-2026"
+  // The distinct number prefixes a batch will use, e.g. ["LVE-2026"]. Usually one,
+  // but a batch spanning two completion years would have two.
+  function batchPrefixes() {
+    if (!state.templateId || !state.rows.length) return [];
+    var seen = {}, out = [];
+    CertGen.certPrefixes(state.templateId, state.rows, el.branch.value).forEach(function (p) {
+      if (!seen[p]) { seen[p] = true; out.push(p); }
+    });
+    return out;
   }
 
-  // Pre-fill the start number from the remembered "next" value for this prefix.
-  function prefillStartNumber() {
-    var prefix = numberingPrefix();
-    if (prefix) {
-      var stored = safeStore(function (s) { return s.getItem('certseq:' + prefix); });
-      if (stored != null && stored !== '') el.startNumber.value = stored;
-    }
-    renderNumbering();
-  }
-
-  // After a successful batch, remember where the next one should continue.
-  function rememberNextNumber() {
-    var prefix = numberingPrefix();
-    if (!prefix) return;
-    var next = (parseInt(el.startNumber.value, 10) || 0) + state.rows.length;
-    safeStore(function (s) { s.setItem('certseq:' + prefix, String(next)); return true; });
-  }
-
-  // Show a live preview of the first/last certificate numbers for the batch.
+  // Show which prefix(es) the batch will use (the sequence comes from the registry).
   function renderNumbering() {
     if (!el.numPrev) return;
-    if (!state.templateId || !state.rows.length) { el.numPrev.innerHTML = ''; return; }
-    var nums = CertGen.certNumbers(state.templateId, state.rows, el.branch.value, el.startNumber.value);
-    var txt = nums.length === 1 ? nums[0] : nums[0] + ' … ' + nums[nums.length - 1];
-    el.numPrev.innerHTML = 'Numbers: <b>' + txt + '</b>';
+    var prefixes = batchPrefixes();
+    if (!prefixes.length) { el.numPrev.innerHTML = ''; return; }
+    el.numPrev.innerHTML = 'Numbers: <b>' + prefixes.map(function (p) { return p + '-####'; }).join(', ') +
+      '</b> <span style="color:#777">(assigned automatically)</span>';
+  }
+
+  // Reserve numbers + store the batch in the registry. Returns numbers in row order.
+  function issueViaRegistry(rows, branch, code) {
+    var tpl = CertGen.TEMPLATES[state.templateId];
+    var prefixes = CertGen.certPrefixes(state.templateId, rows, branch);
+    var groups = {}; // prefix -> array of original row indices
+    prefixes.forEach(function (p, i) { (groups[p] = groups[p] || []).push(i); });
+
+    var numbers = new Array(rows.length);
+    var pending = Object.keys(groups).map(function (prefix) {
+      var idx = groups[prefix];
+      var payload = {
+        code: code, prefix: prefix,
+        rows: idx.map(function (i) {
+          var r = rows[i];
+          return {
+            firstName: r.firstName || '', lastName: r.lastName || '', course: r.course || '',
+            level: r.level || '', hours: r.hours == null ? '' : String(r.hours),
+            startDate: CertGen.toISO(r.startDate), endDate: CertGen.toISO(r.endDate),
+            branch: branch, templateId: state.templateId
+          };
+        })
+      };
+      return fetch(REGISTRY_URL, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload)
+      }).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+          if (!res.ok) throw new Error(data.error === 'wrong access code'
+            ? 'Wrong access code.' : (data.error || ('registry error ' + res.status)));
+          if (!data.numbers || data.numbers.length !== idx.length) throw new Error('Registry returned a bad response.');
+          idx.forEach(function (rowIndex, k) { numbers[rowIndex] = data.numbers[k]; });
+        });
+      });
+    });
+    return Promise.all(pending).then(function () { return numbers; });
   }
 
   function renderColumns(id) {
@@ -205,7 +233,7 @@
     var variant = CertGen.TEMPLATES[state.templateId].variant;
     state.rows = CertGen.mapRows(state.rawRows, variant);
     renderPreview();
-    prefillStartNumber();
+    renderNumbering();
     refreshButtons();
   }
 
@@ -276,12 +304,20 @@
 
   function generate() {
     if (!state.templateId || !state.rows.length) return;
+    var code = (el.accessCode.value || '').trim();
+    if (!code) { setStatus('Enter the staff access code first.', 'err'); el.accessCode.focus(); return; }
+
     el.generateBtn.disabled = true;
-    setStatus('Generating ' + state.rows.length + ' certificate(s)…');
+    setStatus('Assigning numbers from the registry…');
 
-    var id = state.templateId;
+    var id = state.templateId, numbers;
 
-    Promise.all([loadTemplate(id), loadFonts()])
+    issueViaRegistry(state.rows, el.branch.value, code)
+      .then(function (assigned) {
+        numbers = assigned;
+        setStatus('Generating ' + state.rows.length + ' certificate(s)…');
+        return Promise.all([loadTemplate(id), loadFonts()]);
+      })
       .then(function (res) {
         return CertGen.generate({
           templateId: id,
@@ -289,7 +325,7 @@
           fontBytes: res[1],
           rows: state.rows,
           branch: el.branch.value,
-          startNumber: el.startNumber.value,
+          numbers: numbers,
           PDFLib: PDFLib,
           fontkit: fontkit,
           qrcode: qrcode
@@ -305,10 +341,9 @@
         el.downloadBtn.download = 'certificates-template-' + id + '.pdf';
         el.downloadBtn.classList.remove('disabled');
         el.printBtn.disabled = false;
-        var lastNum = CertGen.certNumbers(id, state.rows, el.branch.value, el.startNumber.value).slice(-1)[0];
-        rememberNextNumber();
-        prefillStartNumber(); // advance the start field to the next unused number
-        setStatus('Done — ' + state.rows.length + ' certificate(s) generated (…' + lastNum + '). Preview below.', 'ok');
+        setStatus('Done — ' + state.rows.length + ' certificate(s) generated (' +
+          numbers[0] + (numbers.length > 1 ? ' … ' + numbers[numbers.length - 1] : '') +
+          '). Preview below.', 'ok');
       })
       .catch(function (err) {
         setStatus('Generation failed: ' + err.message, 'err');
@@ -336,9 +371,11 @@
       return;
     }
     renderTemplates();
-    // restore last-used branch
+    // restore last-used branch + remembered access code
     var savedBranch = safeStore(function (s) { return s.getItem('certmaker:branch'); });
     if (savedBranch && CertGen.BRANCHES[savedBranch]) el.branch.value = savedBranch;
+    var savedCode = safeStore(function (s) { return s.getItem('certmaker:code'); });
+    if (savedCode) el.accessCode.value = savedCode;
     selectTemplate('1');
 
     el.browseBtn.addEventListener('click', function () { el.file.click(); });
@@ -346,9 +383,11 @@
     el.sampleLink.addEventListener('click', downloadSample);
     el.branch.addEventListener('change', function () {
       safeStore(function (s) { s.setItem('certmaker:branch', el.branch.value); return true; });
-      prefillStartNumber();
+      renderNumbering();
     });
-    el.startNumber.addEventListener('input', renderNumbering);
+    el.accessCode.addEventListener('change', function () {
+      safeStore(function (s) { s.setItem('certmaker:code', el.accessCode.value.trim()); return true; });
+    });
     el.generateBtn.addEventListener('click', generate);
     el.printBtn.addEventListener('click', printAll);
 

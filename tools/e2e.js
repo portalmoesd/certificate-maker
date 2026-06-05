@@ -31,6 +31,23 @@ const server = http.createServer((req, res) => {
 
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
 
+  // Stub the registry call (offline) so numbers come back without a live server,
+  // and provide the staff access code the UI now requires.
+  await page.evaluate(() => {
+    const orig = window.fetch.bind(window);
+    window.fetch = (url, opts) => {
+      if (typeof url === 'string' && url.indexOf('/_functions/issue') !== -1) {
+        const body = JSON.parse(opts.body);
+        const pad = (x) => String(x).padStart(4, '0');
+        const numbers = body.rows.map((_, i) => body.prefix + '-' + pad(32 + i));
+        return Promise.resolve(new Response(JSON.stringify({ numbers }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
+      return orig(url, opts);
+    };
+    document.getElementById('accessCode').value = 'test-code';
+  });
+
   const results = {};
   for (const id of ['1', '2', '3', '4']) {
     await page.click(`.tpl[data-id="${id}"]`);

@@ -181,7 +181,8 @@
     return 'L' + branch + subject + '-' + year + '-' + pad4(seq);
   }
 
-  // Build the list of certificate numbers for a batch (used by UI + render).
+  // Build the list of certificate numbers for a batch (used by the headless
+  // harness and as a fallback; the web app gets numbers from the server).
   function certNumbers(templateId, rows, branch, startNumber) {
     var tpl = TEMPLATES[templateId];
     var start = parseInt(startNumber, 10);
@@ -189,6 +190,23 @@
     return rows.map(function (row, i) {
       return certNumber(tpl.subject, branch, yearOf(row), start + i);
     });
+  }
+
+  // The number prefix for each row, e.g. "LVE-2026" (no sequence). Rows can
+  // differ in year, so this is computed per row.
+  function certPrefixes(templateId, rows, branch) {
+    var tpl = TEMPLATES[templateId];
+    return rows.map(function (row) {
+      return 'L' + branch + tpl.subject + '-' + yearOf(row);
+    });
+  }
+
+  // Canonical YYYY-MM-DD for storage in the registry (verify formats per language).
+  function toISO(v) {
+    var d = toDate(v);
+    if (!d) return String(v == null ? '' : v).trim();
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
   }
 
   function rgb01(c, rgb) { return rgb(c[0] / 255, c[1] / 255, c[2] / 255); }
@@ -323,7 +341,10 @@
     var rows = opts.rows || [];
     if (opts.rawRows) rows = rows.map(function (r) { return mapRow(r, tpl.variant); });
     if (!rows.length) throw new Error('No rows to render.');
-    var numbers = certNumbers(opts.templateId, rows, branch, opts.startNumber);
+    // Numbers are normally assigned by the server and passed in; fall back to a
+    // local sequence (used by the headless test harness).
+    var numbers = opts.numbers || certNumbers(opts.templateId, rows, branch, opts.startNumber);
+    if (numbers.length !== rows.length) throw new Error('Number/row count mismatch.');
 
     var out = await PDFLib.PDFDocument.create();
     out.registerFontkit(fontkit);
@@ -358,7 +379,7 @@
   return {
     PAGE: PAGE, TEMPLATES: TEMPLATES, BRANCHES: BRANCHES,
     FONT_FILES: FONT_FILES, FONT_KEYS: FONT_KEYS, COLUMNS: COLUMNS, LAYOUT: LAYOUT,
-    formatDate: formatDate, sampleRows: sampleRows, mapRow: mapRow, mapRows: mapRows,
-    certNumber: certNumber, certNumbers: certNumbers, generate: generate
+    formatDate: formatDate, toISO: toISO, sampleRows: sampleRows, mapRow: mapRow, mapRows: mapRows,
+    certNumber: certNumber, certNumbers: certNumbers, certPrefixes: certPrefixes, generate: generate
   };
 }));

@@ -44,8 +44,8 @@
       <h2><span class="step">3</span> Certificate numbering</h2>
       <p class="hint">Numbers are built as <code>L</code> + branch + subject + year + sequence,
         e.g. <code>LVE-2026-0032</code>. Subject (E/A) and year come from the template and dates.
-        The next number is <strong>remembered on this device</strong> per branch/subject/year, so each
-        batch continues where the last one ended.</p>
+        The sequence is assigned <strong>automatically by the registry</strong> when you generate, so
+        every branch and computer stays in sync — no number to set or track.</p>
       <div class="numbering">
         <label class="fld">Branch
           <select id="branch">
@@ -53,8 +53,8 @@
             <option value="K">Krtsanisi (K)</option>
           </select>
         </label>
-        <label class="fld">Start number
-          <input id="startNumber" type="number" min="0" step="1" value="1" />
+        <label class="fld">Access code
+          <input id="accessCode" type="password" autocomplete="off" placeholder="staff code" />
         </label>
         <div class="numprev" id="numPrev"></div>
       </div>
