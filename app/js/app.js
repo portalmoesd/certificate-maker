@@ -5,6 +5,7 @@
   var XLSX = window.XLSX;
   var PDFLib = window.PDFLib;
   var fontkit = window.fontkit;
+  var qrcode = window.qrcode;
   var CertGen = window.CertGen;
 
   var state = {
@@ -18,7 +19,6 @@
   // simple in-memory caches so we don't re-fetch assets
   var templateCache = {};
   var fontBytesPromise = null;
-  var signaturePromise = null;
 
   var el = {
     templates: document.getElementById('templates'),
@@ -29,6 +29,9 @@
     browseBtn: document.getElementById('browseBtn'),
     dropFile: document.getElementById('dropFile'),
     preview: document.getElementById('preview'),
+    branch: document.getElementById('branch'),
+    startNumber: document.getElementById('startNumber'),
+    numPrev: document.getElementById('numPrev'),
     generateBtn: document.getElementById('generateBtn'),
     printBtn: document.getElementById('printBtn'),
     downloadBtn: document.getElementById('downloadBtn'),
@@ -66,13 +69,6 @@
     return fontBytesPromise;
   }
 
-  // The principal's signature is optional — if it's missing, certificates are
-  // still generated (just without it).
-  function loadSignature() {
-    if (signaturePromise) return signaturePromise;
-    signaturePromise = fetchBytes('./signature.png').catch(function () { return null; });
-    return signaturePromise;
-  }
 
   // ---- UI: templates --------------------------------------------------------
 
@@ -106,11 +102,20 @@
     renderColumns(id);
     // re-map any already-loaded rows to this template's schema
     if (state.rawRows.length) mapAndPreview();
+    renderNumbering();
     refreshButtons();
     // warm caches in the background
     loadTemplate(id).catch(function () {});
     loadFonts().catch(function () {});
-    loadSignature();
+  }
+
+  // Show a live preview of the first/last certificate numbers for the batch.
+  function renderNumbering() {
+    if (!el.numPrev) return;
+    if (!state.templateId || !state.rows.length) { el.numPrev.innerHTML = ''; return; }
+    var nums = CertGen.certNumbers(state.templateId, state.rows, el.branch.value, el.startNumber.value);
+    var txt = nums.length === 1 ? nums[0] : nums[0] + ' … ' + nums[nums.length - 1];
+    el.numPrev.innerHTML = 'Numbers: <b>' + txt + '</b>';
   }
 
   function renderColumns(id) {
@@ -177,6 +182,7 @@
     var variant = CertGen.TEMPLATES[state.templateId].variant;
     state.rows = CertGen.mapRows(state.rawRows, variant);
     renderPreview();
+    renderNumbering();
     refreshButtons();
   }
 
@@ -250,16 +256,18 @@
 
     var id = state.templateId;
 
-    Promise.all([loadTemplate(id), loadFonts(), loadSignature()])
+    Promise.all([loadTemplate(id), loadFonts()])
       .then(function (res) {
         return CertGen.generate({
           templateId: id,
           templateBytes: res[0],
           fontBytes: res[1],
-          signatureBytes: res[2],
           rows: state.rows,
+          branch: el.branch.value,
+          startNumber: el.startNumber.value,
           PDFLib: PDFLib,
-          fontkit: fontkit
+          fontkit: fontkit,
+          qrcode: qrcode
         });
       })
       .then(function (bytes) {
@@ -295,7 +303,7 @@
   // ---- wire up --------------------------------------------------------------
 
   function init() {
-    if (!XLSX || !PDFLib || !fontkit || !CertGen) {
+    if (!XLSX || !PDFLib || !fontkit || !qrcode || !CertGen) {
       setStatus('Required libraries failed to load. Check the vendor/ files.', 'err');
       return;
     }
@@ -305,6 +313,8 @@
     el.browseBtn.addEventListener('click', function () { el.file.click(); });
     el.file.addEventListener('change', function (e) { handleFile(e.target.files[0]); });
     el.sampleLink.addEventListener('click', downloadSample);
+    el.branch.addEventListener('change', renderNumbering);
+    el.startNumber.addEventListener('input', renderNumbering);
     el.generateBtn.addEventListener('click', generate);
     el.printBtn.addEventListener('click', printAll);
 

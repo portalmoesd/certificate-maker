@@ -126,6 +126,17 @@ body {
 .warn { color: #b54708; background: #fffaeb; border: 1px solid #fedf89;
   padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
 
+/* Numbering */
+.numbering { display: flex; gap: 18px; align-items: flex-end; flex-wrap: wrap; }
+.fld { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #555; font-weight: 600; }
+.fld select, .fld input {
+  font: inherit; font-weight: 400; color: var(--ink); padding: 9px 11px;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff; min-width: 160px;
+}
+.fld input { min-width: 120px; }
+.numprev { font-size: 13px; color: var(--muted); padding-bottom: 10px; }
+.numprev b { color: var(--ink); font-weight: 600; }
+
 /* Actions */
 .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 button, .ghost {
