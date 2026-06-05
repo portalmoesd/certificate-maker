@@ -86,7 +86,7 @@
         '<div class="body">' +
           '<div class="name">' + t.label + '</div>' +
           '<div class="meta">' + t.accentName + ' accent</div>' +
-          '<span class="lang">' + (t.variant === 'courseonly' ? 'Course only' : 'Course + Level + Hours') + '</span>' +
+          '<span class="lang">' + (t.lang === 'ka' ? 'Georgian · course only' : (t.variant === 'courseonly' ? 'Course only' : 'Course + Level + Hours')) + '</span>' +
         '</div>';
       card.addEventListener('click', function () { selectTemplate(id); });
       el.templates.appendChild(card);
@@ -163,17 +163,10 @@
 
   // ---- sample excel ---------------------------------------------------------
 
-  function buildSampleWorkbook(variant) {
-    var cols = CertGen.COLUMNS[variant];
-    var header = cols.map(function (c) { return c.label; });
-    var alt = { firstName: 'GIORGI', lastName: 'BERIDZE', course: 'General English', level: 'Beginner', startDate: '2026-02-01', endDate: '2026-07-01' };
-    var rows = [
-      header,
-      cols.map(function (c) { return c.sample; }),
-      cols.map(function (c) { return alt[c.key]; })
-    ];
-    var ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = cols.map(function () { return { wch: 22 }; });
+  function buildSampleWorkbook(templateId) {
+    var sample = CertGen.sampleRows(templateId);
+    var ws = XLSX.utils.aoa_to_sheet([sample.headers].concat(sample.rows));
+    ws['!cols'] = sample.headers.map(function () { return { wch: 22 }; });
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Certificates');
     return wb;
@@ -182,8 +175,7 @@
   function downloadSample(e) {
     e.preventDefault();
     if (!state.templateId) { setStatus('Pick a template first.', 'err'); return; }
-    var variant = CertGen.TEMPLATES[state.templateId].variant;
-    XLSX.writeFile(buildSampleWorkbook(variant), 'certificate-template-' + state.templateId + '-sample.xlsx');
+    XLSX.writeFile(buildSampleWorkbook(state.templateId), 'certificate-template-' + state.templateId + '-sample.xlsx');
   }
 
   // ---- file handling --------------------------------------------------------
@@ -224,7 +216,9 @@
       el.preview.innerHTML = '<div class="warn">Choose a template above to map these columns.</div>';
       return;
     }
-    var cols = CertGen.COLUMNS[CertGen.TEMPLATES[state.templateId].variant];
+    var tpl = CertGen.TEMPLATES[state.templateId];
+    var cols = CertGen.COLUMNS[tpl.variant];
+    var lang = tpl.lang || 'en';
 
     var count = document.createElement('div');
     count.className = 'count';
@@ -239,7 +233,7 @@
       var r = state.rows[i];
       body += '<tr>' + cols.map(function (c) {
         var v = r[c.key];
-        if ((c.key === 'startDate' || c.key === 'endDate')) v = CertGen.formatDate(v);
+        if ((c.key === 'startDate' || c.key === 'endDate')) v = CertGen.formatDate(v, lang);
         return '<td>' + escapeHtml(v == null ? '' : String(v)) + '</td>';
       }).join('') + '</tr>';
     }

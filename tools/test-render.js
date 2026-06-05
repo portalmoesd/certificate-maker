@@ -24,18 +24,22 @@ function fonts() {
 }
 
 const ROWS = [
-  { firstName: 'Elizaveta', lastName: 'Datukishvili', course: 'General English', level: 'Intermediate', hours: 48, startDate: '2026-01-16', endDate: '2026-06-16' },
-  { firstName: 'Konstantine', lastName: 'Kvaratskhelia', course: 'Business English', level: 'Upper-Intermediate', hours: 60, startDate: '2025-09-01', endDate: '2026-02-28' }
+  { firstName: 'Elizaveta', lastName: 'Datukishvili', course: 'General English', level: 'Intermediate', hours: 48, startDate: '16.01.2026', endDate: '16.06.2026' },
+  { firstName: 'Konstantine', lastName: 'Kvaratskhelia', course: 'Business English', level: 'Upper-Intermediate', hours: 60, startDate: '01.09.2025', endDate: '28.02.2026' }
+];
+const ROWS_KA = [
+  { firstName: 'ელიზავეტა', lastName: 'დათუკიშვილი', course: 'ხატვის ინტენსიური კურსი', startDate: '16.01.2026', endDate: '16.06.2026' },
+  { firstName: 'კონსტანტინე', lastName: 'კვარაცხელია', course: 'ხატვის ინტენსიური კურსი', startDate: '01.09.2025', endDate: '28.02.2026' }
 ];
 
 (async () => {
   const fontBytes = fonts();
-  for (const id of ['1', '2', '3']) {
+  for (const id of ['1', '2', '3', '4']) {
     const tpl = CertGen.TEMPLATES[id];
     const pdf = await CertGen.generate({
       templateId: id,
       templateBytes: u8(path.join(APP, 'templates', tpl.file)),
-      fontBytes, rows: ROWS, branch: 'V', startNumber: 32,
+      fontBytes, rows: tpl.lang === 'ka' ? ROWS_KA : ROWS, branch: 'V', startNumber: 32,
       PDFLib, fontkit, qrcode
     });
     const dest = path.join(OUT, `test-${id}.pdf`);

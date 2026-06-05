@@ -1,6 +1,6 @@
 /*
  * certgen.js — Core certificate generator for the Levels Academy
- * "Certificate of Completion" templates (yellow, blue, red).
+ * "Certificate of Completion" templates (yellow, blue, red + Georgian art).
  *
  * Pure logic, no DOM. Works both in the browser (attaches window.CertGen)
  * and in Node (module.exports) so the same code powers the web app and the
@@ -12,8 +12,15 @@
  *  - writes the new values with embedded fonts at calibrated positions,
  *  - builds the certificate number and stamps a matching QR verification code.
  *
- * Fonts: the name is Red Hat Display Medium; all other values are Calibri
- * (Bold for course/level/hours/period, Light for the certificate number).
+ * Fonts:
+ *   English (yellow/blue/red): name = Red Hat Display Medium; course/level/
+ *     hours/period = Calibri Bold; certificate number = Calibri Light.
+ *   Georgian (template 4): name = Archy EDT Bold (with +50 tracking); course/
+ *     period = BPG LE Studio 02 Caps (faux-bold via a light stroke, since the
+ *     font has no bold cut); certificate number = Calibri Light.
+ *
+ * Dates are entered in the spreadsheet as DD.MM.YYYY and rendered as
+ * "16 JANUARY 2026" (English) or "16 იანვარი 2026" (Georgian).
  *
  * Certificate number:  L<branch><subject>-<year>-<seq>
  *   branch  : V (Vake) or K (Krtsanisi)        — chosen per batch
@@ -21,9 +28,10 @@
  *   year    : completion year (from the dates)
  *   seq     : 4-digit running number from a start value
  *
- * Two layout variants:
- *   'full'       (yellow, blue): COURSE | LEVEL | HOURS , PERIOD
- *   'courseonly' (red / Art)   : COURSE , PERIOD   (no level, no hours)
+ * Layout variants:
+ *   'full'       (yellow, blue)      : COURSE | LEVEL | HOURS , PERIOD
+ *   'courseonly' (red / Art)         : COURSE , PERIOD   (no level, no hours)
+ *   'kacourse'   (Georgian / Art)    : same as courseonly, Georgian fonts/dates
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
@@ -45,16 +53,19 @@
   var TEMPLATES = {
     '1': { id: '1', variant: 'full', subject: 'E', label: 'Template 1 — Yellow', accent: '#fbc037', accentName: 'Yellow · English', file: 'template1.pdf' },
     '2': { id: '2', variant: 'full', subject: 'E', label: 'Template 2 — Blue', accent: '#365ab1', accentName: 'Blue · English', file: 'template2.pdf' },
-    '3': { id: '3', variant: 'courseonly', subject: 'A', label: 'Template 3 — Red', accent: '#f25468', accentName: 'Red · Art', file: 'template3.pdf' }
+    '3': { id: '3', variant: 'courseonly', subject: 'A', label: 'Template 3 — Red', accent: '#f25468', accentName: 'Red · Art', file: 'template3.pdf' },
+    '4': { id: '4', variant: 'kacourse', subject: 'A', lang: 'ka', label: 'Template 4 — Georgian', accent: '#f25468', accentName: 'Georgian · Art', file: 'template4.pdf' }
   };
 
   // Fonts (key -> filename under app/fonts/).
   var FONT_FILES = {
-    rhmed: 'RedHatDisplay-Medium.ttf', // name
-    cbold: 'calibri-bold.ttf',         // course / level / hours / period
-    clight: 'calibril.ttf'             // certificate number
+    rhmed: 'RedHatDisplay-Medium.ttf',                   // English name
+    cbold: 'calibri-bold.ttf',                           // English course/level/hours/period
+    clight: 'calibril.ttf',                              // certificate number (all templates)
+    archy: 'archyedt-bold-60540591796.otf',              // Georgian name
+    bpg: 'bpg_le_studio_02_caps-7834001055.ttf'          // Georgian course/period
   };
-  var FONT_KEYS = ['rhmed', 'cbold', 'clight'];
+  var FONT_KEYS = ['rhmed', 'cbold', 'clight', 'archy', 'bpg'];
 
   // Expected spreadsheet columns per variant (case/spacing-insensitive headers).
   var BASE_COLS = {
@@ -63,13 +74,24 @@
     course: { key: 'course', headers: ['course'], label: 'Course', sample: 'General English' },
     level: { key: 'level', headers: ['level'], label: 'Level', sample: 'Intermediate' },
     hours: { key: 'hours', headers: ['hours', 'hour'], label: 'Hours', sample: '48' },
-    startDate: { key: 'startDate', headers: ['start date', 'start', 'from', 'period start'], label: 'Start Date', sample: '2026-01-16' },
-    endDate: { key: 'endDate', headers: ['end date', 'end', 'to', 'period end'], label: 'End Date', sample: '2026-06-16' }
+    startDate: { key: 'startDate', headers: ['start date', 'start', 'from', 'period start'], label: 'Start Date', sample: '16.01.2026' },
+    endDate: { key: 'endDate', headers: ['end date', 'end', 'to', 'period end'], label: 'End Date', sample: '16.06.2026' }
   };
   var COLUMNS = {
     full: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.level, BASE_COLS.hours, BASE_COLS.startDate, BASE_COLS.endDate],
-    courseonly: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate]
+    courseonly: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate],
+    kacourse: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate]
   };
+
+  // Example rows for the downloadable sample spreadsheets (dates as DD.MM.YYYY).
+  var EN_SAMPLES = [
+    { firstName: 'Elizaveta', lastName: 'Datukishvili', course: 'General English', level: 'Intermediate', hours: '48', startDate: '16.01.2026', endDate: '16.06.2026' },
+    { firstName: 'Giorgi', lastName: 'Beridze', course: 'General English', level: 'Beginner', hours: '36', startDate: '01.02.2026', endDate: '01.07.2026' }
+  ];
+  var KA_SAMPLES = [
+    { firstName: 'ელიზავეტა', lastName: 'დათუკიშვილი', course: 'ხატვის ინტენსიური კურსი', startDate: '16.01.2026', endDate: '16.06.2026' },
+    { firstName: 'გიორგი', lastName: 'ბერიძე', course: 'ხატვის ინტენსიური კურსი', startDate: '01.02.2026', endDate: '01.07.2026' }
+  ];
 
   // Shared name placement (identical on all three pages).
   var NAME = { x: 199, line1: 409.2, lineGap: 37.2, size: 40, font: 'rhmed', color: INK, maxWidth: 560, whiteout: { x0: 195, y0: 143, x1: 650, y1: 236 } };
@@ -81,6 +103,10 @@
     return { x: x, baseline: 250.4, size: 12, font: 'cbold', color: INK, maxWidth: maxWidth, whiteout: whiteout };
   }
   var PERIOD = { x: 199, baseline: 188.8, size: 12, font: 'cbold', color: INK, maxWidth: 360, whiteout: { x0: 197, y0: 393, x1: 570, y1: 407 } };
+
+  // Georgian (template 4) placement. Name is Archy EDT Bold with +50 tracking;
+  // course/period are BPG LE Studio 02 Caps drawn faux-bold (no bold cut exists).
+  var NAME_KA = { x: 199, line1: 410.0, lineGap: 37.2, size: 40, font: 'archy', tracking: 50, color: INK, maxWidth: 560 };
 
   var LAYOUT = {
     full: {
@@ -94,11 +120,19 @@
       name: NAME,
       course: valueField(199, 560, { x0: 197, y0: 332, x1: 600, y1: 346 }),
       period: PERIOD, certno: CERTNO, qr: QR
+    },
+    kacourse: {
+      name: NAME_KA,
+      course: { x: 199, baseline: 249.9, size: 12, font: 'bpg', bold: true, color: INK, maxWidth: 560 },
+      period: { x: 199, baseline: 188.3, size: 12, font: 'bpg', bold: true, color: INK, maxWidth: 360 },
+      certno: CERTNO, qr: QR
     }
   };
 
   var MONTHS_EN = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
     'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  var MONTHS_KA = ['იანვარი', 'თებერვალი', 'მარტი', 'აპრილი', 'მაისი', 'ივნისი',
+    'ივლისი', 'აგვისტო', 'სექტემბერი', 'ოქტომბერი', 'ნოემბერი', 'დეკემბერი'];
 
   // --- helpers ---------------------------------------------------------------
 
@@ -117,10 +151,21 @@
     return isNaN(d) ? null : d;
   }
 
-  function formatDate(v) {
+  function formatDate(v, lang) {
     var d = toDate(v);
     if (!d) return String(v == null ? '' : v).trim();
-    return d.getDate() + ' ' + MONTHS_EN[d.getMonth()] + ' ' + d.getFullYear();
+    var months = lang === 'ka' ? MONTHS_KA : MONTHS_EN;
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  // Header + data rows for a template's downloadable sample spreadsheet.
+  function sampleRows(templateId) {
+    var tpl = TEMPLATES[templateId], cols = COLUMNS[tpl.variant];
+    var data = tpl.lang === 'ka' ? KA_SAMPLES : EN_SAMPLES;
+    return {
+      headers: cols.map(function (c) { return c.label; }),
+      rows: data.map(function (d) { return cols.map(function (c) { return d[c.key] == null ? '' : d[c.key]; }); })
+    };
   }
 
   function pad4(n) { n = String(n); while (n.length < 4) n = '0' + n; return n; }
@@ -180,6 +225,49 @@
     page.drawText(text, { x: x, y: baseline, size: s, font: font, color: rgb01(color, rgb) });
   }
 
+  // Faux-bold offset passes (points) — approximate a ~0.5pt stroke for fonts
+  // that ship no bold cut (the Georgian BPG face).
+  var BOLD_PASSES = [[0, 0], [0.35, 0], [0.17, 0.17]];
+  var PLAIN_PASS = [[0, 0]];
+
+  // Draw one line, optionally with Illustrator-style letter spacing (tracking, in
+  // 1/1000 em) and/or faux-bold. Shrinks to fit maxWidth. With no tracking and no
+  // bold this matches drawLine exactly (used by all the English fields).
+  function drawRich(page, text, font, x, baseline, size, maxWidth, color, rgb, opts) {
+    if (text == null || text === '') return;
+    opts = opts || {};
+    var col = rgb01(color, rgb);
+    var passes = opts.bold ? BOLD_PASSES : PLAIN_PASS;
+    var trackEm = (opts.tracking || 0) / 1000;
+    var p;
+
+    if (!trackEm) {
+      var s = size, w = font.widthOfTextAtSize(text, size);
+      if (maxWidth && w > maxWidth) s = size * maxWidth / w;
+      for (p = 0; p < passes.length; p++) {
+        page.drawText(text, { x: x + passes[p][0], y: baseline + passes[p][1], size: s, font: font, color: col });
+      }
+      return;
+    }
+
+    // Letter-spaced: lay the glyphs out one by one. total() is linear in size.
+    var chars = Array.from(String(text));
+    function total(sz) {
+      var t = 0;
+      for (var i = 0; i < chars.length; i++) t += font.widthOfTextAtSize(chars[i], sz);
+      return t + trackEm * sz * Math.max(0, chars.length - 1);
+    }
+    var s2 = size;
+    if (maxWidth && total(size) > maxWidth) s2 = size * maxWidth / total(size);
+    var gap = trackEm * s2, cx = x;
+    for (var i = 0; i < chars.length; i++) {
+      for (p = 0; p < passes.length; p++) {
+        page.drawText(chars[i], { x: cx + passes[p][0], y: baseline + passes[p][1], size: s2, font: font, color: col });
+      }
+      cx += font.widthOfTextAtSize(chars[i], s2) + gap;
+    }
+  }
+
   function drawQR(page, text, q, qrcode, rgb) {
     var qr = qrcode(0, 'M');
     qr.addData(text);
@@ -195,25 +283,30 @@
     }
   }
 
-  function draw(page, row, variant, certNo, fonts, qrcode, rgb) {
-    var L = LAYOUT[variant];
+  function draw(page, row, tpl, certNo, fonts, qrcode, rgb) {
+    var L = LAYOUT[tpl.variant];
+    var ka = tpl.lang === 'ka';
+    // Georgian fonts are caps-style by design and have no Latin-style case
+    // mapping, so only the English templates upper-case their values.
+    var cap = ka ? function (s) { return s; } : function (s) { return s.toUpperCase(); };
+
     // Templates are pre-cleaned of their sample values (see tools/clean-templates.py),
     // so no whiteout is needed for text fields — only the sample QR image is hidden.
     whiteout(page, L.qr.whiteout, rgb);
 
-    var med = fonts.rhmed, bold = fonts.cbold, light = fonts.clight;
+    var nm = L.name;
+    drawRich(page, cap(String(row.firstName || '').trim()), fonts[nm.font], nm.x, nm.line1, nm.size, nm.maxWidth, nm.color, rgb, { tracking: nm.tracking });
+    drawRich(page, cap(String(row.lastName || '').trim()), fonts[nm.font], nm.x, nm.line1 - nm.lineGap, nm.size, nm.maxWidth, nm.color, rgb, { tracking: nm.tracking });
 
-    drawLine(page, String(row.firstName || '').trim().toUpperCase(), med, L.name.x, L.name.line1, L.name.size, L.name.maxWidth, L.name.color, rgb);
-    drawLine(page, String(row.lastName || '').trim().toUpperCase(), med, L.name.x, L.name.line1 - L.name.lineGap, L.name.size, L.name.maxWidth, L.name.color, rgb);
+    drawRich(page, cap(String(row.course || '')), fonts[L.course.font], L.course.x, L.course.baseline, L.course.size, L.course.maxWidth, L.course.color, rgb, { bold: L.course.bold });
+    if (L.level) drawRich(page, cap(String(row.level || '')), fonts[L.level.font], L.level.x, L.level.baseline, L.level.size, L.level.maxWidth, L.level.color, rgb, { bold: L.level.bold });
+    if (L.hours) drawRich(page, String(row.hours || '').trim(), fonts[L.hours.font], L.hours.x, L.hours.baseline, L.hours.size, L.hours.maxWidth, L.hours.color, rgb, { bold: L.hours.bold });
 
-    drawLine(page, String(row.course || '').toUpperCase(), bold, L.course.x, L.course.baseline, L.course.size, L.course.maxWidth, L.course.color, rgb);
-    if (L.level) drawLine(page, String(row.level || '').toUpperCase(), bold, L.level.x, L.level.baseline, L.level.size, L.level.maxWidth, L.level.color, rgb);
-    if (L.hours) drawLine(page, String(row.hours || '').trim(), bold, L.hours.x, L.hours.baseline, L.hours.size, L.hours.maxWidth, L.hours.color, rgb);
+    var lang = ka ? 'ka' : 'en';
+    var start = formatDate(row.startDate, lang), end = formatDate(row.endDate, lang);
+    drawRich(page, end ? start + ' - ' + end : start, fonts[L.period.font], L.period.x, L.period.baseline, L.period.size, L.period.maxWidth, L.period.color, rgb, { bold: L.period.bold });
 
-    var start = formatDate(row.startDate), end = formatDate(row.endDate);
-    drawLine(page, end ? start + ' - ' + end : start, bold, L.period.x, L.period.baseline, L.period.size, L.period.maxWidth, L.period.color, rgb);
-
-    drawLine(page, certNo, light, L.certno.x, L.certno.baseline, L.certno.size, L.certno.maxWidth, L.certno.color, rgb);
+    drawLine(page, certNo, fonts[L.certno.font], L.certno.x, L.certno.baseline, L.certno.size, L.certno.maxWidth, L.certno.color, rgb);
     drawQR(page, VERIFY_BASE + certNo, L.qr, qrcode, rgb);
   }
 
@@ -235,17 +328,29 @@
     var out = await PDFLib.PDFDocument.create();
     out.registerFontkit(fontkit);
     var fonts = {};
-    for (var i = 0; i < FONT_KEYS.length; i++) {
-      fonts[FONT_KEYS[i]] = await out.embedFont(opts.fontBytes[FONT_KEYS[i]], { subset: true });
+    var needed = fontKeysForLayout(LAYOUT[tpl.variant]);
+    for (var i = 0; i < needed.length; i++) {
+      // Archy (OTF/CFF) is embedded whole — its subset trips some PDF engines.
+      var subset = needed[i] !== 'archy';
+      fonts[needed[i]] = await out.embedFont(opts.fontBytes[needed[i]], { subset: subset });
     }
     var tplPage = (await out.embedPdf(opts.templateBytes, [0]))[0];
 
     for (var r = 0; r < rows.length; r++) {
       var page = out.addPage([PAGE.W, PAGE.H]);
       page.drawPage(tplPage);
-      draw(page, rows[r], tpl.variant, numbers[r], fonts, qrcode, rgb);
+      draw(page, rows[r], tpl, numbers[r], fonts, qrcode, rgb);
     }
     return out.save();
+  }
+
+  // The distinct font keys a layout actually uses (so we embed only those).
+  function fontKeysForLayout(L) {
+    var keys = {};
+    ['name', 'course', 'level', 'hours', 'period', 'certno'].forEach(function (k) {
+      if (L[k] && L[k].font) keys[L[k].font] = true;
+    });
+    return Object.keys(keys);
   }
 
   function mapRows(rawRows, variant) { return rawRows.map(function (r) { return mapRow(r, variant); }); }
@@ -253,7 +358,7 @@
   return {
     PAGE: PAGE, TEMPLATES: TEMPLATES, BRANCHES: BRANCHES,
     FONT_FILES: FONT_FILES, FONT_KEYS: FONT_KEYS, COLUMNS: COLUMNS, LAYOUT: LAYOUT,
-    formatDate: formatDate, mapRow: mapRow, mapRows: mapRows,
+    formatDate: formatDate, sampleRows: sampleRows, mapRow: mapRow, mapRows: mapRows,
     certNumber: certNumber, certNumbers: certNumbers, generate: generate
   };
 }));
