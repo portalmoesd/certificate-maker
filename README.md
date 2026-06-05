@@ -21,15 +21,30 @@ which is why it embeds cleanly in a Wix `iframe`.
 ## How it works
 
 The original artwork (`certificate templates(2).pdf`) is split into three
-single-page template PDFs. For each spreadsheet row the app:
+single-page template PDFs which are then **cleaned** of their sample values by
+`tools/clean-templates.py` (text-only redaction — the watermark and all graphics
+are kept). For each spreadsheet row the app:
 
-- draws the original template (logo, Cambridge badge, seal, signature — pixel-perfect),
-- covers the sample text/QR baked into the template with white boxes,
+- draws the clean template (logo, Cambridge badge, seal, watermark, signature),
 - writes the new values at calibrated positions using embedded fonts,
 - builds the certificate number and stamps a matching QR verification code.
 
-Long names/courses auto-shrink to stay inside their column. The principal
-signature is part of the template artwork (no overlay needed).
+Because the templates are pre-cleaned, the values sit directly on the artwork and
+the **watermark shows through** (no opaque boxes). Long names/courses auto-shrink
+to stay inside their column. The principal signature is part of the artwork.
+
+### Preparing a new template
+
+Whenever the source artwork changes, re-run:
+
+```bash
+pdfseparate "certificate templates(2).pdf" app/templates/template-%d.pdf
+mv app/templates/template-1.pdf app/templates/template1.pdf   # 2, 3 likewise
+python3 tools/clean-templates.py     # strips sample values, keeps the watermark
+```
+
+If field positions move, update the rects in `clean-templates.py` and the
+`LAYOUT` in `app/js/certgen.js` (both are calibrated to the artwork).
 
 ### Fonts
 
@@ -59,6 +74,13 @@ Each certificate gets a number `L<branch><subject>-<year>-<seq>`, e.g.
 
 The QR code (bottom-right) encodes `https://levels.ge/verify/<number>` and is
 regenerated per certificate (library: `app/vendor/qrcode.min.js`).
+
+**Running count is remembered.** After a batch, the next sequence number is saved
+in the browser's `localStorage`, keyed by the number prefix (e.g. `LVE-2026`), and
+the Start number field pre-fills from it — so each batch continues where the last
+one ended. Because the prefix contains the year, **a new year automatically starts
+a fresh sequence** (e.g. `LVE-2027-0001`). The memory is per-device/browser; it
+resets if you clear site data or use a different computer.
 
 ## Spreadsheet columns
 
@@ -97,6 +119,7 @@ app/                     ← the deployable site (this whole folder is static)
   templates/             ← template1.pdf, template2.pdf, template3.pdf
   samples/               ← downloadable example spreadsheets
 tools/                   ← dev/test only, NOT needed for deployment
+  clean-templates.py     ← strips sample values from templates (keeps watermark)
   test-render.js         ← headless render of sample certificates
   e2e.js                 ← drives the real UI in headless Chromium
   mk-samples.js          ← regenerates the sample spreadsheets

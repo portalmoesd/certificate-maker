@@ -102,11 +102,42 @@
     renderColumns(id);
     // re-map any already-loaded rows to this template's schema
     if (state.rawRows.length) mapAndPreview();
-    renderNumbering();
+    prefillStartNumber();
     refreshButtons();
     // warm caches in the background
     loadTemplate(id).catch(function () {});
     loadFonts().catch(function () {});
+  }
+
+  // --- remembering the running number ---------------------------------------
+  // Stored in localStorage keyed by the number prefix (e.g. "LVE-2026"), so each
+  // branch/subject/year keeps its own count. When the year changes the prefix
+  // changes, so a new sequence starts automatically.
+
+  function safeStore(get) { try { return get(window.localStorage); } catch (e) { return null; } }
+
+  function numberingPrefix() {
+    if (!state.templateId || !state.rows.length) return null;
+    var first = CertGen.certNumbers(state.templateId, state.rows, el.branch.value, 1)[0];
+    return first.replace(/-\d+$/, ''); // "LVE-2026"
+  }
+
+  // Pre-fill the start number from the remembered "next" value for this prefix.
+  function prefillStartNumber() {
+    var prefix = numberingPrefix();
+    if (prefix) {
+      var stored = safeStore(function (s) { return s.getItem('certseq:' + prefix); });
+      if (stored != null && stored !== '') el.startNumber.value = stored;
+    }
+    renderNumbering();
+  }
+
+  // After a successful batch, remember where the next one should continue.
+  function rememberNextNumber() {
+    var prefix = numberingPrefix();
+    if (!prefix) return;
+    var next = (parseInt(el.startNumber.value, 10) || 0) + state.rows.length;
+    safeStore(function (s) { s.setItem('certseq:' + prefix, String(next)); return true; });
   }
 
   // Show a live preview of the first/last certificate numbers for the batch.
@@ -182,7 +213,7 @@
     var variant = CertGen.TEMPLATES[state.templateId].variant;
     state.rows = CertGen.mapRows(state.rawRows, variant);
     renderPreview();
-    renderNumbering();
+    prefillStartNumber();
     refreshButtons();
   }
 
@@ -280,7 +311,10 @@
         el.downloadBtn.download = 'certificates-template-' + id + '.pdf';
         el.downloadBtn.classList.remove('disabled');
         el.printBtn.disabled = false;
-        setStatus('Done — ' + state.rows.length + ' certificate(s) generated. Preview below.', 'ok');
+        var lastNum = CertGen.certNumbers(id, state.rows, el.branch.value, el.startNumber.value).slice(-1)[0];
+        rememberNextNumber();
+        prefillStartNumber(); // advance the start field to the next unused number
+        setStatus('Done — ' + state.rows.length + ' certificate(s) generated (…' + lastNum + '). Preview below.', 'ok');
       })
       .catch(function (err) {
         setStatus('Generation failed: ' + err.message, 'err');
@@ -308,12 +342,18 @@
       return;
     }
     renderTemplates();
+    // restore last-used branch
+    var savedBranch = safeStore(function (s) { return s.getItem('certmaker:branch'); });
+    if (savedBranch && CertGen.BRANCHES[savedBranch]) el.branch.value = savedBranch;
     selectTemplate('1');
 
     el.browseBtn.addEventListener('click', function () { el.file.click(); });
     el.file.addEventListener('change', function (e) { handleFile(e.target.files[0]); });
     el.sampleLink.addEventListener('click', downloadSample);
-    el.branch.addEventListener('change', renderNumbering);
+    el.branch.addEventListener('change', function () {
+      safeStore(function (s) { s.setItem('certmaker:branch', el.branch.value); return true; });
+      prefillStartNumber();
+    });
     el.startNumber.addEventListener('input', renderNumbering);
     el.generateBtn.addEventListener('click', generate);
     el.printBtn.addEventListener('click', printAll);

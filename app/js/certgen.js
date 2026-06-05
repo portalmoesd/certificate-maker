@@ -198,12 +198,8 @@
 
   function draw(page, row, variant, certNo, fonts, qrcode, rgb) {
     var L = LAYOUT[variant];
-    whiteout(page, L.name.whiteout, rgb);
-    whiteout(page, L.course.whiteout, rgb);
-    if (L.level) whiteout(page, L.level.whiteout, rgb);
-    whiteout(page, L.hours.whiteout, rgb);
-    whiteout(page, L.period.whiteout, rgb);
-    whiteout(page, L.certno.whiteout, rgb);
+    // Templates are pre-cleaned of their sample values (see tools/clean-templates.py),
+    // so no whiteout is needed for text fields — only the sample QR image is hidden.
     whiteout(page, L.qr.whiteout, rgb);
 
     var med = fonts.rhmed, bold = fonts.cbold, light = fonts.clight;
