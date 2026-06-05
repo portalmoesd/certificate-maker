@@ -5,10 +5,12 @@ batch of finished certificates as a single print-ready PDF.
 
 Workflow:
 
-1. **Choose a template** (Template 1 – yellow, Template 2 – blue, Template 3 – red).
-   All three are English; the red one has no LEVEL field.
+1. **Choose a template** (Template 1 – yellow English, Template 2 – blue English,
+   Template 3 – red Art). The red one has no LEVEL field.
 2. **Upload an Excel file** (`.xlsx`/`.csv`) with one row per person.
-3. The app fills each certificate, merges them into **one PDF**, shows a preview,
+3. **Set the certificate numbering** — branch (Vake/Krtsanisi) and the starting
+   sequence number.
+4. The app fills each certificate, merges them into **one PDF**, shows a preview,
    and lets you **Print all** or **Download**.
 
 Everything runs in the browser — no server, and **no data ever leaves the page**,
@@ -18,56 +20,69 @@ which is why it embeds cleanly in a Wix `iframe`.
 
 ## How it works
 
-The original artwork (`certificate templates.pdf`) is split into three
+The original artwork (`certificate templates(2).pdf`) is split into three
 single-page template PDFs. For each spreadsheet row the app:
 
-- draws the original template (logo, Cambridge badge, seal, colours — pixel-perfect),
-- covers the sample text baked into the template with white boxes,
+- draws the original template (logo, Cambridge badge, seal, signature — pixel-perfect),
+- covers the sample text/QR baked into the template with white boxes,
 - writes the new values at calibrated positions using embedded fonts,
-- stamps the principal's signature (`app/signature.png`) above the PRINCIPAL label.
+- builds the certificate number and stamps a matching QR verification code.
 
-Long names/courses auto-shrink to stay inside their column.
+Long names/courses auto-shrink to stay inside their column. The principal
+signature is part of the template artwork (no overlay needed).
 
 ### Fonts
 
-All text uses the original Red Hat Display, embedded in `app/fonts/`:
+Embedded in `app/fonts/`:
 
 | Field | Font file |
 |---|---|
 | Name | `RedHatDisplay-Medium.ttf` |
-| Course / Level / Period | `RedHatDisplay-Bold.ttf` |
+| Course / Level / Hours / Period | `calibri-bold.ttf` (Calibri Bold) |
+| Certificate number | `calibril.ttf` (Calibri Light) |
 
 Sizes and baselines are calibrated against the original artwork in
 `app/js/certgen.js` (`LAYOUT`).
 
-### Signature
+### Certificate number & QR code
 
-`app/signature.png` (transparent PNG) is drawn above the PRINCIPAL label on every
-certificate. To change the signer, just replace that file. It's optional — if the
-file is missing, certificates still generate without it.
+Each certificate gets a number `L<branch><subject>-<year>-<seq>`, e.g.
+`LVE-2026-0032`:
+
+- **L** — Levels (always).
+- **branch** — `V` Vake / `K` Krtsanisi — chosen once per batch in the UI.
+- **subject** — `E` English / `A` Art — fixed by the template (yellow & blue = E,
+  red = A).
+- **year** — the completion year, taken from the End Date (falls back to Start Date).
+- **seq** — a 4-digit running number starting from the value you set, incrementing
+  down the spreadsheet.
+
+The QR code (bottom-right) encodes `https://levels.ge/verify/<number>` and is
+regenerated per certificate (library: `app/vendor/qrcode.min.js`).
 
 ## Spreadsheet columns
 
 Headers are matched case- and spacing-insensitively. Download a ready-made
 sample from inside the app, or from `app/samples/`.
 
-**Templates 1 & 2 (yellow, blue)**
+**Templates 1 & 2 (yellow, blue — English)**
 
-| First Name | Last Name | Course | Level | Start Date | End Date |
+| First Name | Last Name | Course | Level | Hours | Start Date | End Date |
+|---|---|---|---|---|---|---|
+| Elizaveta | Datukishvili | General English | Intermediate | 48 | 2026-01-16 | 2026-06-16 |
+
+**Template 3 (red — Art, no level)**
+
+| First Name | Last Name | Course | Hours | Start Date | End Date |
 |---|---|---|---|---|---|
-| Elizaveta | Datukishvili | General English | Intermediate | 2026-01-16 | 2026-06-16 |
-
-**Template 3 (red — no level)**
-
-| First Name | Last Name | Course | Start Date | End Date |
-|---|---|---|---|---|
-| Elizaveta | Datukishvili | General English | 2026-01-16 | 2026-06-16 |
+| Elizaveta | Datukishvili | General English | 48 | 2026-01-16 | 2026-06-16 |
 
 Notes:
 - **Dates** may be real Excel dates or text. Real dates are formatted
   automatically (`16 JANUARY 2026`); text is used as typed.
 - Names/courses are shown in UPPERCASE automatically (matching the design).
 - A single `Name` column also works — it's split into first/last on the space.
+- The certificate number is **not** a spreadsheet column — it's generated (see above).
 
 ## Project layout
 
@@ -77,16 +92,15 @@ app/                     ← the deployable site (this whole folder is static)
   css/style.css
   js/app.js              ← browser UI
   js/certgen.js          ← core generator (shared with the Node tests)
-  vendor/                ← pdf-lib, fontkit, SheetJS (bundled, no CDN needed)
-  fonts/                 ← Red Hat Display Medium + Bold (.ttf)
-  signature.png          ← principal signature, stamped above PRINCIPAL
+  vendor/                ← pdf-lib, fontkit, SheetJS, qrcode (bundled, no CDN needed)
+  fonts/                 ← Red Hat Display Medium + Calibri Light/Bold (.ttf)
   templates/             ← template1.pdf, template2.pdf, template3.pdf
   samples/               ← downloadable example spreadsheets
 tools/                   ← dev/test only, NOT needed for deployment
   test-render.js         ← headless render of sample certificates
   e2e.js                 ← drives the real UI in headless Chromium
   mk-samples.js          ← regenerates the sample spreadsheets
-certificate templates.pdf← original source artwork
+certificate templates(2).pdf ← original source artwork
 ```
 
 ## Run locally

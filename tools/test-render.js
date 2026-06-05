@@ -9,12 +9,12 @@ const path = require('path');
 
 const PDFLib = require('../app/vendor/pdf-lib.min.js');
 const fontkit = require('../app/vendor/fontkit.umd.min.js');
+const qrcode = require('../app/vendor/qrcode.min.js');
 const CertGen = require('../app/js/certgen.js');
 
 const APP = path.join(__dirname, '..', 'app');
 const OUT = path.join(__dirname, 'out');
 fs.mkdirSync(OUT, { recursive: true });
-
 const u8 = (p) => new Uint8Array(fs.readFileSync(p));
 
 function fonts() {
@@ -24,22 +24,23 @@ function fonts() {
 }
 
 const ROWS = [
-  { firstName: 'Elizaveta', lastName: 'Datukishvili', course: 'General English', level: 'Intermediate', startDate: '2026-01-16', endDate: '2026-06-16' },
-  { firstName: 'Konstantine', lastName: 'Kvaratskhelia', course: 'Business English', level: 'Upper-Intermediate', startDate: '2025-09-01', endDate: '2026-02-28' }
+  { firstName: 'Elizaveta', lastName: 'Datukishvili', course: 'General English', level: 'Intermediate', hours: 48, startDate: '2026-01-16', endDate: '2026-06-16' },
+  { firstName: 'Konstantine', lastName: 'Kvaratskhelia', course: 'Business English', level: 'Upper-Intermediate', hours: 60, startDate: '2025-09-01', endDate: '2026-02-28' }
 ];
 
 (async () => {
   const fontBytes = fonts();
-  const signatureBytes = u8(path.join(APP, 'signature.png'));
   for (const id of ['1', '2', '3']) {
     const tpl = CertGen.TEMPLATES[id];
     const pdf = await CertGen.generate({
       templateId: id,
       templateBytes: u8(path.join(APP, 'templates', tpl.file)),
-      fontBytes, signatureBytes, rows: ROWS, PDFLib, fontkit
+      fontBytes, rows: ROWS, branch: 'V', startNumber: 32,
+      PDFLib, fontkit, qrcode
     });
     const dest = path.join(OUT, `test-${id}.pdf`);
     fs.writeFileSync(dest, pdf);
-    console.log(`wrote ${dest} (${pdf.length} bytes, ${ROWS.length} pages)`);
+    console.log(`wrote ${dest} (${pdf.length} bytes) — nums:`,
+      CertGen.certNumbers(id, ROWS, 'V', 32).join(', '));
   }
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -39,9 +39,28 @@
       <div id="preview" class="preview"></div>
     </section>
 
-    <!-- Step 3: generate -->
+    <!-- Step 3: numbering -->
     <section class="card">
-      <h2><span class="step">3</span> Generate &amp; print</h2>
+      <h2><span class="step">3</span> Certificate numbering</h2>
+      <p class="hint">Numbers are built as <code>L</code> + branch + subject + year + sequence,
+        e.g. <code>LVE-2026-0032</code>. Subject (E/A) and year come from the template and dates.</p>
+      <div class="numbering">
+        <label class="fld">Branch
+          <select id="branch">
+            <option value="V">Vake (V)</option>
+            <option value="K">Krtsanisi (K)</option>
+          </select>
+        </label>
+        <label class="fld">Start number
+          <input id="startNumber" type="number" min="0" step="1" value="1" />
+        </label>
+        <div class="numprev" id="numPrev"></div>
+      </div>
+    </section>
+
+    <!-- Step 4: generate -->
+    <section class="card">
+      <h2><span class="step">4</span> Generate &amp; print</h2>
       <div class="actions">
         <button type="button" id="generateBtn" class="primary" disabled>Generate certificates</button>
         <button type="button" id="printBtn" class="ghost" disabled>Print all</button>
@@ -60,6 +79,7 @@
   <script src="./vendor/xlsx.full.min.js"></script>
   <script src="./vendor/pdf-lib.min.js"></script>
   <script src="./vendor/fontkit.umd.min.js"></script>
+  <script src="./vendor/qrcode.min.js"></script>
   <script src="./js/certgen.js"></script>
   <script src="./js/app.js"></script>
 </body>

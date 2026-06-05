@@ -5,7 +5,7 @@ const OUT = path.join(__dirname, '..', 'app', 'samples');
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
-const alt = { firstName: 'GIORGI', lastName: 'BERIDZE', course: 'General English', level: 'Beginner', startDate: '2026-02-01', endDate: '2026-07-01' };
+const alt = { firstName: 'GIORGI', lastName: 'BERIDZE', course: 'General English', level: 'Beginner', hours: 36, startDate: '2026-02-01', endDate: '2026-07-01' };
 
 for (const id of ['1', '2', '3']) {
   const variant = CertGen.TEMPLATES[id].variant;
