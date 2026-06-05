@@ -78,8 +78,18 @@ Each certificate gets a number `L<branch><subject>-<year>-<seq>`, e.g.
 - **year** — the completion year, taken from the End Date (falls back to Start Date).
 - **seq** — a 4-digit running number **assigned by the registry** (see below).
 
-The QR code (bottom-right) encodes `https://levels.ge/verify/<number>` and is
-regenerated per certificate (library: `app/vendor/qrcode.min.js`).
+The QR code (bottom-right) encodes `https://levels.ge/verify?v=<token>` — a random
+per-certificate token (not the sequential number), so scanning one QR can't be used
+to guess another. It's regenerated per certificate (library: `app/vendor/qrcode.min.js`).
+
+### Verifying a certificate
+
+Scanning a QR opens the Wix `/verify` page, which reads `?v=<token>`, calls
+`GET /_functions/verify`, and shows the holder's name, course, level/hours, period
+and certificate number — or "not verified". The page is localised (Georgian for
+template-4 certificates). The page (an HTML embed + a Velo snippet) and the backend
+function live in `wix/` (`verify.html`, `verify-page.velo.js`, `http-functions.js`);
+setup is in `wix/README.md`.
 
 ### Automatic numbering via the registry
 

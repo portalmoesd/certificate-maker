@@ -44,7 +44,9 @@
 
   var PAGE = { W: 841.89, H: 595.276 };
   var INK = [0x39, 0x35, 0x36]; // dark grey for all variable text
-  var VERIFY_BASE = 'https://levels.ge/verify/';
+  // The QR encodes the verify URL with a per-certificate random token (?v=...),
+  // so other certificates can't be found by guessing the sequential number.
+  var VERIFY_BASE = 'https://levels.ge/verify?v=';
 
   var BRANCHES = { V: 'Vake', K: 'Krtsanisi' };
 
@@ -307,7 +309,7 @@
     }
   }
 
-  function draw(page, row, tpl, certNo, fonts, qrcode, rgb) {
+  function draw(page, row, tpl, certNo, verifyUrl, fonts, qrcode, rgb) {
     var L = LAYOUT[tpl.variant];
     var ka = tpl.lang === 'ka';
     // Georgian fonts are caps-style by design and have no Latin-style case
@@ -336,7 +338,7 @@
     drawRich(page, end ? start + ' - ' + end : start, fonts[L.period.font], L.period.x, L.period.baseline, L.period.size, L.period.maxWidth, L.period.color, rgb, { bold: L.period.bold });
 
     drawLine(page, certNo, fonts[L.certno.font], L.certno.x, L.certno.baseline, L.certno.size, L.certno.maxWidth, L.certno.color, rgb);
-    drawQR(page, VERIFY_BASE + certNo, L.qr, qrcode, rgb);
+    drawQR(page, verifyUrl, L.qr, qrcode, rgb);
   }
 
   // --- public API ------------------------------------------------------------
@@ -356,6 +358,9 @@
     // local sequence (used by the headless test harness).
     var numbers = opts.numbers || certNumbers(opts.templateId, rows, branch, opts.startNumber);
     if (numbers.length !== rows.length) throw new Error('Number/row count mismatch.');
+    // The QR carries the per-row verify token from the server. With no token
+    // (harness), fall back to the number so the QR is still valid-looking.
+    var tokens = opts.tokens || numbers;
 
     var out = await PDFLib.PDFDocument.create();
     out.registerFontkit(fontkit);
@@ -371,7 +376,7 @@
     for (var r = 0; r < rows.length; r++) {
       var page = out.addPage([PAGE.W, PAGE.H]);
       page.drawPage(tplPage);
-      draw(page, rows[r], tpl, numbers[r], fonts, qrcode, rgb);
+      draw(page, rows[r], tpl, numbers[r], VERIFY_BASE + tokens[r], fonts, qrcode, rgb);
     }
     return out.save();
   }

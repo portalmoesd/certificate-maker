@@ -141,14 +141,14 @@
       '</b> <span style="color:#777">(assigned automatically)</span>';
   }
 
-  // Reserve numbers + store the batch in the registry. Returns numbers in row order.
+  // Reserve numbers + store the batch in the registry. Resolves to
+  // { numbers, tokens } in row order (numbers -> printed no.; tokens -> QR).
   function issueViaRegistry(rows, branch, code) {
-    var tpl = CertGen.TEMPLATES[state.templateId];
     var prefixes = CertGen.certPrefixes(state.templateId, rows, branch);
     var groups = {}; // prefix -> array of original row indices
     prefixes.forEach(function (p, i) { (groups[p] = groups[p] || []).push(i); });
 
-    var numbers = new Array(rows.length);
+    var numbers = new Array(rows.length), tokens = new Array(rows.length);
     var pending = Object.keys(groups).map(function (prefix) {
       var idx = groups[prefix];
       var payload = {
@@ -169,12 +169,14 @@
         return res.json().catch(function () { return {}; }).then(function (data) {
           if (!res.ok) throw new Error(data.error === 'wrong access code'
             ? 'Wrong access code.' : (data.error || ('registry error ' + res.status)));
-          if (!data.numbers || data.numbers.length !== idx.length) throw new Error('Registry returned a bad response.');
-          idx.forEach(function (rowIndex, k) { numbers[rowIndex] = data.numbers[k]; });
+          if (!data.numbers || data.numbers.length !== idx.length || !data.tokens || data.tokens.length !== idx.length) {
+            throw new Error('Registry returned a bad response.');
+          }
+          idx.forEach(function (rowIndex, k) { numbers[rowIndex] = data.numbers[k]; tokens[rowIndex] = data.tokens[k]; });
         });
       });
     });
-    return Promise.all(pending).then(function () { return numbers; });
+    return Promise.all(pending).then(function () { return { numbers: numbers, tokens: tokens }; });
   }
 
   function renderColumns(id) {
@@ -314,18 +316,20 @@
 
     issueViaRegistry(state.rows, el.branch.value, code)
       .then(function (assigned) {
-        numbers = assigned;
+        numbers = assigned.numbers;
         setStatus('Generating ' + state.rows.length + ' certificate(s)…');
-        return Promise.all([loadTemplate(id), loadFonts()]);
+        return Promise.all([loadTemplate(id), loadFonts()]).then(function (res) { return [res, assigned]; });
       })
-      .then(function (res) {
+      .then(function (pair) {
+        var res = pair[0], assigned = pair[1];
         return CertGen.generate({
           templateId: id,
           templateBytes: res[0],
           fontBytes: res[1],
           rows: state.rows,
           branch: el.branch.value,
-          numbers: numbers,
+          numbers: assigned.numbers,
+          tokens: assigned.tokens,
           PDFLib: PDFLib,
           fontkit: fontkit,
           qrcode: qrcode

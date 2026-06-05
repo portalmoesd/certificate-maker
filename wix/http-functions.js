@@ -5,14 +5,16 @@
  * Backend  ▸  http-functions.js  (Velo / Dev Mode). After editing here, paste the
  * contents into the Wix Editor and Publish. See wix/README.md for full setup.
  *
- * Endpoint:  POST https://www.levels.ge/_functions/issue
- *   body (JSON, sent as text/plain to avoid a CORS pre-flight):
- *     { code, prefix, rows: [{ firstName, lastName, course, level, hours,
- *                              startDate, endDate, branch, templateId }] }
- *   returns: { numbers: ["LVE-2026-0032", ...] }   (one per row, in order)
+ * Endpoints:
+ *   POST /_functions/issue   (write, access-code gated) — assigns numbers and
+ *     per-certificate tokens, stores the batch, returns { numbers, tokens }.
+ *   GET  /_functions/verify?v=<token>  (public, read-only) — returns the
+ *     certificate's display fields, looked up by token only (never by number,
+ *     so the sequential numbers can't be enumerated).
  *
  * Requires:
- *   - a "Certificates" data collection (fields listed in wix/README.md),
+ *   - a "Certificates" data collection (fields listed in wix/README.md,
+ *     including the `token` field),
  *   - a Secrets Manager secret named "certMakerSecret" (the staff access code).
  */
 import { ok, badRequest, forbidden, serverError } from 'wix-http-functions';
@@ -59,6 +61,7 @@ export async function post_issue(request) {
   const pad = (n) => String(n).padStart(4, '0');
   const records = rows.map((r, i) => ({
     certNumber: prefix + '-' + pad(start + i),
+    token: makeToken(),
     firstName: r.firstName || '', lastName: r.lastName || '', course: r.course || '',
     level: r.level || '', hours: r.hours || '', startDate: r.startDate || '',
     endDate: r.endDate || '', branch: r.branch || '', templateId: r.templateId || '',
@@ -66,5 +69,42 @@ export async function post_issue(request) {
   }));
   await wixData.bulkInsert('Certificates', records, { suppressAuth: true });
 
-  return ok({ headers: CORS, body: { numbers: records.map((x) => x.certNumber) } });
+  // numbers -> the printed "Certificate No."; tokens -> what the QR encodes.
+  return ok({ headers: CORS, body: {
+    numbers: records.map((x) => x.certNumber),
+    tokens: records.map((x) => x.token)
+  } });
+}
+
+// Unguessable per-certificate token (no ambiguous characters).
+function makeToken() {
+  const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  let s = '';
+  for (let i = 0; i < 16; i++) s += a[Math.floor(Math.random() * a.length)];
+  return s;
+}
+
+// Browser pre-flight check for the verify endpoint.
+export function options_verify() {
+  return ok({ headers: CORS });
+}
+
+// GET /_functions/verify?v=<token> — public, read-only certificate lookup.
+// Lookup is by the random token only (never by the sequential number), so the
+// registry cannot be enumerated.
+export async function get_verify(request) {
+  const v = String((request.query && request.query.v) || '').trim();
+  if (!/^[A-Za-z0-9]{10,40}$/.test(v)) return ok({ headers: CORS, body: { found: false } });
+
+  const res = await wixData.query('Certificates')
+    .eq('token', v).limit(1).find({ suppressAuth: true });
+  if (!res.items.length) return ok({ headers: CORS, body: { found: false } });
+
+  const c = res.items[0];
+  return ok({ headers: CORS, body: { found: true, certificate: {
+    certNumber: c.certNumber, firstName: c.firstName, lastName: c.lastName,
+    course: c.course, level: c.level, hours: c.hours,
+    startDate: c.startDate, endDate: c.endDate, templateId: c.templateId,
+    issuedAt: c.issuedAt
+  } } });
 }
