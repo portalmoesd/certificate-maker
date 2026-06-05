@@ -67,6 +67,9 @@
   };
   var FONT_KEYS = ['rhmed', 'cbold', 'clight', 'archy', 'bpg'];
 
+  // Default Georgian statement (the line under the name). Editable per row.
+  var KA_STATEMENT = 'კურსის წარმატებით დასრულებისთვის';
+
   // Expected spreadsheet columns per variant (case/spacing-insensitive headers).
   var BASE_COLS = {
     firstName: { key: 'firstName', headers: ['first name', 'firstname', 'name'], label: 'First Name', sample: 'Elizaveta' },
@@ -75,12 +78,14 @@
     level: { key: 'level', headers: ['level'], label: 'Level', sample: 'Intermediate' },
     hours: { key: 'hours', headers: ['hours', 'hour'], label: 'Hours', sample: '48' },
     startDate: { key: 'startDate', headers: ['start date', 'start', 'from', 'period start'], label: 'Start Date', sample: '16.01.2026' },
-    endDate: { key: 'endDate', headers: ['end date', 'end', 'to', 'period end'], label: 'End Date', sample: '16.06.2026' }
+    endDate: { key: 'endDate', headers: ['end date', 'end', 'to', 'period end'], label: 'End Date', sample: '16.06.2026' },
+    // Georgian-only: the subtitle under the name. Blank cell falls back to KA_STATEMENT.
+    statement: { key: 'statement', headers: ['statement', 'subtitle', 'message', 'text'], label: 'Statement', sample: KA_STATEMENT }
   };
   var COLUMNS = {
     full: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.level, BASE_COLS.hours, BASE_COLS.startDate, BASE_COLS.endDate],
     courseonly: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate],
-    kacourse: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate]
+    kacourse: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate, BASE_COLS.statement]
   };
 
   // Example rows for the downloadable sample spreadsheets (dates as DD.MM.YYYY).
@@ -89,8 +94,8 @@
     { firstName: 'Giorgi', lastName: 'Beridze', course: 'General English', level: 'Beginner', hours: '36', startDate: '01.02.2026', endDate: '01.07.2026' }
   ];
   var KA_SAMPLES = [
-    { firstName: 'ელიზავეტა', lastName: 'დათუკიშვილი', course: 'ხატვის ინტენსიური კურსი', startDate: '16.01.2026', endDate: '16.06.2026' },
-    { firstName: 'გიორგი', lastName: 'ბერიძე', course: 'ხატვის ინტენსიური კურსი', startDate: '01.02.2026', endDate: '01.07.2026' }
+    { firstName: 'ელიზავეტა', lastName: 'დათუკიშვილი', course: 'ხატვის ინტენსიური კურსი', startDate: '16.01.2026', endDate: '16.06.2026', statement: KA_STATEMENT },
+    { firstName: 'გიორგი', lastName: 'ბერიძე', course: 'ხატვის ინტენსიური კურსი', startDate: '01.02.2026', endDate: '01.07.2026', statement: KA_STATEMENT }
   ];
 
   // Shared name placement (identical on all three pages).
@@ -123,6 +128,7 @@
     },
     kacourse: {
       name: NAME_KA,
+      statement: { x: 199, baseline: 322.2, size: 14, font: 'bpg', color: INK, maxWidth: 580, default: KA_STATEMENT },
       course: { x: 199, baseline: 249.9, size: 12, font: 'bpg', bold: true, color: INK, maxWidth: 560 },
       period: { x: 199, baseline: 188.3, size: 12, font: 'bpg', bold: true, color: INK, maxWidth: 360 },
       certno: CERTNO, qr: QR
@@ -316,6 +322,11 @@
     drawRich(page, cap(String(row.firstName || '').trim()), fonts[nm.font], nm.x, nm.line1, nm.size, nm.maxWidth, nm.color, rgb, { tracking: nm.tracking });
     drawRich(page, cap(String(row.lastName || '').trim()), fonts[nm.font], nm.x, nm.line1 - nm.lineGap, nm.size, nm.maxWidth, nm.color, rgb, { tracking: nm.tracking });
 
+    if (L.statement) {
+      var st = L.statement, stmt = String(row.statement || '').trim() || st.default || '';
+      drawRich(page, stmt, fonts[st.font], st.x, st.baseline, st.size, st.maxWidth, st.color, rgb, { bold: st.bold });
+    }
+
     drawRich(page, cap(String(row.course || '')), fonts[L.course.font], L.course.x, L.course.baseline, L.course.size, L.course.maxWidth, L.course.color, rgb, { bold: L.course.bold });
     if (L.level) drawRich(page, cap(String(row.level || '')), fonts[L.level.font], L.level.x, L.level.baseline, L.level.size, L.level.maxWidth, L.level.color, rgb, { bold: L.level.bold });
     if (L.hours) drawRich(page, String(row.hours || '').trim(), fonts[L.hours.font], L.hours.x, L.hours.baseline, L.hours.size, L.hours.maxWidth, L.hours.color, rgb, { bold: L.hours.bold });
@@ -368,7 +379,7 @@
   // The distinct font keys a layout actually uses (so we embed only those).
   function fontKeysForLayout(L) {
     var keys = {};
-    ['name', 'course', 'level', 'hours', 'period', 'certno'].forEach(function (k) {
+    ['name', 'statement', 'course', 'level', 'hours', 'period', 'certno'].forEach(function (k) {
       if (L[k] && L[k].font) keys[L[k].font] = true;
     });
     return Object.keys(keys);
