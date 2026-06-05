@@ -76,18 +76,28 @@ Each certificate gets a number `L<branch><subject>-<year>-<seq>`, e.g.
 - **subject** — `E` English / `A` Art — fixed by the template (yellow & blue = E,
   red = A).
 - **year** — the completion year, taken from the End Date (falls back to Start Date).
-- **seq** — a 4-digit running number starting from the value you set, incrementing
-  down the spreadsheet.
+- **seq** — a 4-digit running number **assigned by the registry** (see below).
 
 The QR code (bottom-right) encodes `https://levels.ge/verify/<number>` and is
 regenerated per certificate (library: `app/vendor/qrcode.min.js`).
 
-**Running count is remembered.** After a batch, the next sequence number is saved
-in the browser's `localStorage`, keyed by the number prefix (e.g. `LVE-2026`), and
-the Start number field pre-fills from it — so each batch continues where the last
-one ended. Because the prefix contains the year, **a new year automatically starts
-a fresh sequence** (e.g. `LVE-2027-0001`). The memory is per-device/browser; it
-resets if you clear site data or use a different computer.
+### Automatic numbering via the registry
+
+The sequence is **assigned server-side** so it is consistent and collision-free
+across every branch and computer — there is no number to set or remember.
+
+On **Generate**, the app POSTs the batch to a small Wix Velo backend
+(`POST /_functions/issue`, see `wix/http-functions.js`). The backend reads the
+highest existing number for the prefix (e.g. `LVE-2026`), assigns the next ones,
+stores each certificate in the `Certificates` collection, and returns the numbers,
+which the app stamps onto the PDFs. Because the prefix contains the year, **a new
+year automatically starts a fresh sequence** (e.g. `LVE-2027-0001`). The same
+`Certificates` collection is what the verify page will read later.
+
+Staff enter a one-time **access code** (kept on the device, never in the code; it
+matches the `certMakerSecret` in the Wix Secrets Manager) which authorises the
+write. The endpoint URL is `REGISTRY_URL` in `app/js/app.js`. Setup steps and the
+backend code are in `wix/README.md`.
 
 ## Spreadsheet columns
 
