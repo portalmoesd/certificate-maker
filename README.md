@@ -6,7 +6,8 @@ batch of finished certificates as a single print-ready PDF.
 Workflow:
 
 1. **Choose a template** (Template 1 – yellow English, Template 2 – blue English,
-   Template 3 – red Art). The red one has no LEVEL field.
+   Template 3 – red Art). The red (Art) one shows the **course only** — no LEVEL
+   or HOURS fields.
 2. **Upload an Excel file** (`.xlsx`/`.csv`) with one row per person.
 3. **Set the certificate numbering** — branch (Vake/Krtsanisi) and the starting
    sequence number.
@@ -20,7 +21,7 @@ which is why it embeds cleanly in a Wix `iframe`.
 
 ## How it works
 
-The original artwork (`certificate templates(2).pdf`) is split into three
+The original artwork (`certificate templates(3).pdf`) is split into three
 single-page template PDFs which are then **cleaned** of their sample values by
 `tools/clean-templates.py` (text-only redaction — the watermark and all graphics
 are kept). For each spreadsheet row the app:
@@ -38,7 +39,7 @@ to stay inside their column. The principal signature is part of the artwork.
 Whenever the source artwork changes, re-run:
 
 ```bash
-pdfseparate "certificate templates(2).pdf" app/templates/template-%d.pdf
+pdfseparate "certificate templates(3).pdf" app/templates/template-%d.pdf
 mv app/templates/template-1.pdf app/templates/template1.pdf   # 2, 3 likewise
 python3 tools/clean-templates.py     # strips sample values, keeps the watermark
 ```
@@ -93,11 +94,11 @@ sample from inside the app, or from `app/samples/`.
 |---|---|---|---|---|---|---|
 | Elizaveta | Datukishvili | General English | Intermediate | 48 | 2026-01-16 | 2026-06-16 |
 
-**Template 3 (red — Art, no level)**
+**Template 3 (red — Art, course only — no level or hours)**
 
-| First Name | Last Name | Course | Hours | Start Date | End Date |
-|---|---|---|---|---|---|
-| Elizaveta | Datukishvili | General English | 48 | 2026-01-16 | 2026-06-16 |
+| First Name | Last Name | Course | Start Date | End Date |
+|---|---|---|---|---|
+| Elizaveta | Datukishvili | Drawing & Painting | 2026-01-16 | 2026-06-16 |
 
 Notes:
 - **Dates** may be real Excel dates or text. Real dates are formatted
