@@ -28,8 +28,11 @@ const ROWS = [
   { firstName: 'Konstantine', lastName: 'Kvaratskhelia', course: 'Business English', level: 'Upper-Intermediate', hours: 60, startDate: '01.09.2025', endDate: '28.02.2026' }
 ];
 const ROWS_KA = [
-  { firstName: 'ელიზავეტა', lastName: 'დათუკიშვილი', course: 'ხატვის ინტენსიური კურსი', startDate: '16.01.2026', endDate: '16.06.2026' },
-  { firstName: 'კონსტანტინე', lastName: 'კვარაცხელია', course: 'ხატვის ინტენსიური კურსი', startDate: '01.09.2025', endDate: '28.02.2026' }
+  // deliberately different course/dates than the template sample, to prove the
+  // old outlined values are gone (no overlap); statement left blank -> default.
+  { firstName: 'ელისო', lastName: 'მაისურაძე', course: 'ფერწერის საბაზისო კურსი', startDate: '03.02.2026', endDate: '20.07.2026' },
+  // custom statement override.
+  { firstName: 'კონსტანტინე', lastName: 'კვარაცხელია', course: 'ხატვის ინტენსიური კურსი', startDate: '01.09.2025', endDate: '28.02.2026', statement: 'სასწავლო პროგრამის დასრულებისთვის' }
 ];
 
 (async () => {

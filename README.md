@@ -118,9 +118,12 @@ sample from inside the app, or from `app/samples/`.
 
 **Template 4 (Georgian — Art, course only)** — enter the values in Georgian:
 
-| First Name | Last Name | Course | Start Date | End Date |
-|---|---|---|---|---|
-| ელიზავეტა | დათუკიშვილი | ხატვის ინტენსიური კურსი | 16.01.2026 | 16.06.2026 |
+| First Name | Last Name | Course | Start Date | End Date | Statement |
+|---|---|---|---|---|---|
+| ელიზავეტა | დათუკიშვილი | ხატვის ინტენსიური კურსი | 16.01.2026 | 16.06.2026 | კურსის წარმატებით დასრულებისთვის |
+
+`Statement` is the editable line under the name; leave it blank to use the
+default (`კურსის წარმატებით დასრულებისთვის`).
 
 Notes:
 - **Dates** are entered as **`DD.MM.YYYY`** (e.g. `16.01.2026`). They render as
