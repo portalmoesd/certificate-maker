@@ -40,7 +40,8 @@ const server = http.createServer((req, res) => {
         const body = JSON.parse(opts.body);
         const pad = (x) => String(x).padStart(4, '0');
         const numbers = body.rows.map((_, i) => body.prefix + '-' + pad(32 + i));
-        return Promise.resolve(new Response(JSON.stringify({ numbers }),
+        const tokens = body.rows.map((_, i) => 'TESTTOKEN' + (32 + i));
+        return Promise.resolve(new Response(JSON.stringify({ numbers, tokens }),
           { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
       return orig(url, opts);
