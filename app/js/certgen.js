@@ -104,7 +104,12 @@
   var NAME = { x: 199, line1: 409.2, lineGap: 37.2, size: 40, font: 'rhmed', color: INK, maxWidth: 560, whiteout: { x0: 195, y0: 143, x1: 650, y1: 236 } };
   // Certificate number + QR (identical on all three pages).
   var CERTNO = { x: 576.4, baseline: 46.6, size: 10, font: 'clight', color: INK, maxWidth: 90, whiteout: { x0: 574, y0: 538, x1: 648, y1: 550 } };
-  var QR = { x: 786.3, y: 36.4, size: 36.8, color: [0x40, 0x40, 0x41], whiteout: { x0: 784, y0: 520, x1: 825, y1: 561 } };
+  // The whiteout must fully cover the baked sample QR before our per-certificate
+  // QR is stamped on top, otherwise the template's QR shows through around ours
+  // (two overlapping codes). The baked art reaches ~x[785,823] / y[36,77] and
+  // sits in open white space (nearest decoration — the corner swoosh — is at
+  // y~96), so we cover it generously with margin on every side.
+  var QR = { x: 786.3, y: 36.4, size: 36.8, color: [0x40, 0x40, 0x41], whiteout: { x0: 782, y0: 510, x1: 826, y1: 563 } };
 
   function valueField(x, maxWidth, whiteout) {
     return { x: x, baseline: 250.4, size: 12, font: 'cbold', color: INK, maxWidth: maxWidth, whiteout: whiteout };
