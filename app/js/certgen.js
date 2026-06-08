@@ -104,7 +104,7 @@
   var NAME = { x: 199, line1: 409.2, lineGap: 37.2, size: 40, font: 'rhmed', color: INK, maxWidth: 560, whiteout: { x0: 195, y0: 143, x1: 650, y1: 236 } };
   // Certificate number + QR (identical on all three pages).
   var CERTNO = { x: 576.4, baseline: 46.6, size: 10, font: 'clight', color: INK, maxWidth: 90, whiteout: { x0: 574, y0: 538, x1: 648, y1: 550 } };
-  var QR = { x: 792.5, y: 42.6, size: 24.5, whiteout: { x0: 790, y0: 526, x1: 818, y1: 554 } };
+  var QR = { x: 786.3, y: 36.4, size: 36.8, color: [0x40, 0x40, 0x41], whiteout: { x0: 784, y0: 520, x1: 825, y1: 561 } };
 
   function valueField(x, maxWidth, whiteout) {
     return { x: x, baseline: 250.4, size: 12, font: 'cbold', color: INK, maxWidth: maxWidth, whiteout: whiteout };
@@ -298,12 +298,12 @@
     var qr = qrcode(0, 'M');
     qr.addData(text);
     qr.make();
-    var n = qr.getModuleCount(), m = q.size / n, black = rgb(0, 0, 0);
+    var n = qr.getModuleCount(), m = q.size / n, ink = rgb01(q.color || [0, 0, 0], rgb);
     for (var r = 0; r < n; r++) {
       for (var c = 0; c < n; c++) {
         if (qr.isDark(r, c)) {
           // +0.25 overlap avoids hairline gaps between modules when rasterised
-          page.drawRectangle({ x: q.x + c * m, y: q.y + q.size - (r + 1) * m, width: m + 0.25, height: m + 0.25, color: black });
+          page.drawRectangle({ x: q.x + c * m, y: q.y + q.size - (r + 1) * m, width: m + 0.25, height: m + 0.25, color: ink });
         }
       }
     }
