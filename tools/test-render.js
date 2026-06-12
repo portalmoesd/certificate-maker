@@ -31,8 +31,8 @@ const ROWS_KA = [
   // deliberately different course/dates than the template sample, to prove the
   // old outlined values are gone (no overlap); statement left blank -> default.
   { firstName: 'ელისო', lastName: 'მაისურაძე', course: 'ფერწერის საბაზისო კურსი', startDate: '03.02.2026', endDate: '20.07.2026' },
-  // custom statement override.
-  { firstName: 'კონსტანტინე', lastName: 'კვარაცხელია', course: 'ხატვის ინტენსიური კურსი', startDate: '01.09.2025', endDate: '28.02.2026', statement: 'სასწავლო პროგრამის დასრულებისთვის' }
+  // custom statement override + heading override ('თარიღი' instead of 'პერიოდი').
+  { firstName: 'კონსტანტინე', lastName: 'კვარაცხელია', course: 'ხატვის ინტენსიური კურსი', startDate: '01.09.2025', endDate: '28.02.2026', statement: 'სასწავლო პროგრამის დასრულებისთვის', periodLabel: 'თარიღი' }
 ];
 
 (async () => {
