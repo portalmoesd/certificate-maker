@@ -71,6 +71,9 @@
 
   // Default Georgian statement (the line under the name). Editable per row.
   var KA_STATEMENT = 'კურსის წარმატებით დასრულებისთვის';
+  // Default heading above the date range on the Georgian template. This is baked
+  // into the artwork; rows can override it (e.g. 'თარიღი') via the spreadsheet.
+  var KA_PERIOD_LABEL = 'პერიოდი';
 
   // Expected spreadsheet columns per variant (case/spacing-insensitive headers).
   var BASE_COLS = {
@@ -82,12 +85,15 @@
     startDate: { key: 'startDate', headers: ['start date', 'start', 'from', 'period start'], label: 'Start Date', sample: '16.01.2026' },
     endDate: { key: 'endDate', headers: ['end date', 'end', 'to', 'period end'], label: 'End Date', sample: '16.06.2026' },
     // Georgian-only: the subtitle under the name. Blank cell falls back to KA_STATEMENT.
-    statement: { key: 'statement', headers: ['statement', 'subtitle', 'message', 'text'], label: 'Statement', sample: KA_STATEMENT }
+    statement: { key: 'statement', headers: ['statement', 'subtitle', 'message', 'text'], label: 'Statement', sample: KA_STATEMENT },
+    // Georgian-only: the heading above the date range. Blank cell falls back to
+    // the baked 'პერიოდი'; set it to 'თარიღი' (or any text) to override.
+    periodLabel: { key: 'periodLabel', headers: ['heading (პერიოდი/თარიღი)', 'heading', 'label', 'period label', 'date label', 'წარწერა', 'პერიოდი', 'თარიღი'], label: 'Heading (პერიოდი/თარიღი)', sample: KA_PERIOD_LABEL }
   };
   var COLUMNS = {
     full: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.level, BASE_COLS.hours, BASE_COLS.startDate, BASE_COLS.endDate],
     courseonly: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate],
-    kacourse: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate, BASE_COLS.statement]
+    kacourse: [BASE_COLS.firstName, BASE_COLS.lastName, BASE_COLS.course, BASE_COLS.startDate, BASE_COLS.endDate, BASE_COLS.statement, BASE_COLS.periodLabel]
   };
 
   // Example rows for the downloadable sample spreadsheets (dates as DD.MM.YYYY).
@@ -96,8 +102,8 @@
     { firstName: 'Giorgi', lastName: 'Beridze', course: 'General English', level: 'Beginner', hours: '36', startDate: '01.02.2026', endDate: '01.07.2026' }
   ];
   var KA_SAMPLES = [
-    { firstName: 'ელიზავეტა', lastName: 'დათუკიშვილი', course: 'ხატვის ინტენსიური კურსი', startDate: '16.01.2026', endDate: '16.06.2026', statement: KA_STATEMENT },
-    { firstName: 'გიორგი', lastName: 'ბერიძე', course: 'ხატვის ინტენსიური კურსი', startDate: '01.02.2026', endDate: '01.07.2026', statement: KA_STATEMENT }
+    { firstName: 'ელიზავეტა', lastName: 'დათუკიშვილი', course: 'ხატვის ინტენსიური კურსი', startDate: '16.01.2026', endDate: '16.06.2026', statement: KA_STATEMENT, periodLabel: 'პერიოდი' },
+    { firstName: 'გიორგი', lastName: 'ბერიძე', course: 'ხატვის ინტენსიური კურსი', startDate: '01.02.2026', endDate: '01.07.2026', statement: KA_STATEMENT, periodLabel: 'თარიღი' }
   ];
 
   // Shared name placement (identical on all three pages).
@@ -138,6 +144,10 @@
       statement: { x: 199, baseline: 322.2, size: 14, font: 'bpg', color: INK, maxWidth: 580, default: KA_STATEMENT },
       course: { x: 199, baseline: 249.9, size: 12, font: 'bpg', bold: true, color: INK, maxWidth: 560 },
       period: { x: 199, baseline: 188.3, size: 12, font: 'bpg', bold: true, color: INK, maxWidth: 360 },
+      // Heading above the date range. Matches the baked 'პერიოდი' (BPG caps,
+      // regular weight, size 12 at x=199 / baseline 202.2). Only stamped when a
+      // row overrides the default, in which case the baked word is whited out.
+      periodLabel: { x: 199, baseline: 202.2, size: 12, font: 'bpg', color: INK, maxWidth: 300, default: KA_PERIOD_LABEL, whiteout: { x0: 196, y0: 383, x1: 270, y1: 396 } },
       certno: CERTNO, qr: QR
     }
   };
@@ -342,6 +352,18 @@
     var start = formatDate(row.startDate, lang), end = formatDate(row.endDate, lang);
     drawRich(page, end ? start + ' - ' + end : start, fonts[L.period.font], L.period.x, L.period.baseline, L.period.size, L.period.maxWidth, L.period.color, rgb, { bold: L.period.bold });
 
+    // Optional heading override above the date range (Georgian template). The
+    // default ('პერიოდი') is baked into the artwork, so only redraw when a row
+    // asks for something else — covering the baked word first.
+    if (L.periodLabel) {
+      var pl = L.periodLabel;
+      var heading = String(row.periodLabel == null ? '' : row.periodLabel).trim() || pl.default;
+      if (heading !== pl.default) {
+        whiteout(page, pl.whiteout, rgb);
+        drawRich(page, heading, fonts[pl.font], pl.x, pl.baseline, pl.size, pl.maxWidth, pl.color, rgb, {});
+      }
+    }
+
     drawLine(page, certNo, fonts[L.certno.font], L.certno.x, L.certno.baseline, L.certno.size, L.certno.maxWidth, L.certno.color, rgb);
     drawQR(page, verifyUrl, L.qr, qrcode, rgb);
   }
@@ -389,7 +411,7 @@
   // The distinct font keys a layout actually uses (so we embed only those).
   function fontKeysForLayout(L) {
     var keys = {};
-    ['name', 'statement', 'course', 'level', 'hours', 'period', 'certno'].forEach(function (k) {
+    ['name', 'statement', 'course', 'level', 'hours', 'period', 'periodLabel', 'certno'].forEach(function (k) {
       if (L[k] && L[k].font) keys[L[k].font] = true;
     });
     return Object.keys(keys);
