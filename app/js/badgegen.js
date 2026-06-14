@@ -46,10 +46,10 @@
   // row baseline), used to build the clean templates. Stays clear of the logo.
   var CELL_CLEAR = { halfW: 95, top: 24, bottom: -48 };
 
-  // Per-academy template + accent (CMYK) for the age.
+  // Per-academy template, accent (hex for the UI / CMYK for the age).
   var ACADEMIES = {
-    E: { id: 'E', file: 'badge-academy.pdf', label: 'Levels Academy', age: [0, 0.239, 0.788, 0] },
-    A: { id: 'A', file: 'badge-art.pdf', label: 'Levels Art Academy', age: [0, 0.69, 0.462, 0] }
+    E: { id: 'E', file: 'badge-academy.pdf', label: 'Levels Academy', accent: '#fbc037', accentName: 'Yellow', age: [0, 0.239, 0.788, 0] },
+    A: { id: 'A', file: 'badge-art.pdf', label: 'Levels Art Academy', accent: '#f25468', accentName: 'Red', age: [0, 0.69, 0.462, 0] }
   };
 
   // Spreadsheet columns (case/space-insensitive headers), mirroring certgen.

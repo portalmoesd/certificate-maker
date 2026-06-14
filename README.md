@@ -225,6 +225,8 @@ just point the Wix iframe at the URL.
 
 ```bash
 node tools/test-render.js   # writes tools/out/test-{1,2,3}.pdf
-node tools/e2e.js           # runs the real UI in headless Chromium
+node tools/e2e.js           # runs the real UI (certificates) in headless Chromium
 node tools/mk-samples.js    # regenerate app/samples/*.xlsx
+node tools/badge-render.js  # writes tools/out/badges-{E,A}.pdf
+node tools/e2e-badges.js    # runs the real UI (name badges) in headless Chromium
 ```

@@ -7,6 +7,7 @@
   var fontkit = window.fontkit;
   var qrcode = window.qrcode;
   var CertGen = window.CertGen;
+  var BadgeGen = window.BadgeGen;
 
   // Registry endpoint (Wix Velo backend). It assigns the certificate numbers
   // server-side and stores each issued certificate, so numbering is automatic
@@ -15,7 +16,9 @@
   var REGISTRY_URL = window.REGISTRY_URL || 'https://www.levels.ge/_functions/issue';
 
   var state = {
+    mode: 'cert',      // 'cert' (certificates) | 'badge' (name badges)
     templateId: null,
+    academy: null,     // badge mode: 'E' | 'A'
     rows: [],          // mapped rows
     rawRows: [],       // original sheet rows (for preview)
     fileName: '',
@@ -27,6 +30,12 @@
   var fontBytesPromise = null;
 
   var el = {
+    modes: document.getElementById('modes'),
+    appTitle: document.getElementById('appTitle'),
+    appSub: document.getElementById('appSub'),
+    pickHeading: document.getElementById('pickHeading'),
+    stepNumbering: document.getElementById('stepNumbering'),
+    stepGenNo: document.getElementById('stepGenNo'),
     templates: document.getElementById('templates'),
     colsNote: document.getElementById('colsNote'),
     sampleLink: document.getElementById('sampleLink'),
@@ -60,6 +69,15 @@
     var file = CertGen.TEMPLATES[id].file;
     return fetchBytes('./templates/' + file).then(function (bytes) {
       templateCache[id] = bytes; return bytes;
+    });
+  }
+
+  function loadBadgeTemplate(code) {
+    var key = 'badge:' + code;
+    if (templateCache[key]) return Promise.resolve(templateCache[key]);
+    var file = BadgeGen.ACADEMIES[code].file;
+    return fetchBytes('./badges/' + file).then(function (bytes) {
+      templateCache[key] = bytes; return bytes;
     });
   }
 
@@ -105,7 +123,7 @@
     Array.prototype.forEach.call(el.templates.children, function (c) {
       c.classList.toggle('active', c.dataset.id === id);
     });
-    renderColumns(id);
+    renderColumns();
     // re-map any already-loaded rows to this template's schema
     if (state.rawRows.length) mapAndPreview();
     renderNumbering();
@@ -113,6 +131,72 @@
     // warm caches in the background
     loadTemplate(id).catch(function () {});
     loadFonts().catch(function () {});
+  }
+
+  // ---- mode (certificates / badges) ----------------------------------------
+
+  function setMode(mode) {
+    state.mode = mode;
+    var badge = mode === 'badge';
+    Array.prototype.forEach.call(el.modes.children, function (b) {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    el.appTitle.textContent = badge ? 'Badge Maker' : 'Certificate Maker';
+    el.appSub.textContent = badge
+      ? 'Upload an Excel file of names and ages, pick the academy, and generate name badges (8 per A4 sheet).'
+      : 'Upload an Excel file, pick a template, and generate every certificate as one print-ready PDF.';
+    el.pickHeading.textContent = badge ? 'Choose the academy' : 'Choose a template';
+    el.stepNumbering.style.display = badge ? 'none' : '';
+    el.stepGenNo.textContent = badge ? '3' : '4';
+    el.generateBtn.textContent = badge ? 'Generate badges' : 'Generate certificates';
+    document.title = (badge ? 'Levels Academy — Badge Maker' : 'Levels Academy — Certificate Maker');
+    resetOutput();
+    if (badge) { renderAcademies(); selectAcademy(state.academy || 'E'); }
+    else { renderTemplates(); selectTemplate(state.templateId || '1'); }
+  }
+
+  function renderAcademies() {
+    el.templates.innerHTML = '';
+    Object.keys(BadgeGen.ACADEMIES).forEach(function (code) {
+      var a = BadgeGen.ACADEMIES[code];
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'tpl';
+      card.dataset.id = code;
+      card.innerHTML =
+        '<div class="bar" style="background:' + a.accent + '"></div>' +
+        '<div class="body">' +
+          '<div class="name">' + a.label + '</div>' +
+          '<div class="meta">' + a.accentName + ' accent</div>' +
+          '<span class="lang">8 badges per A4 sheet</span>' +
+        '</div>';
+      card.addEventListener('click', function () { selectAcademy(code); });
+      el.templates.appendChild(card);
+    });
+  }
+
+  function selectAcademy(code) {
+    state.academy = code;
+    document.documentElement.style.setProperty('--accent', BadgeGen.ACADEMIES[code].accent);
+    Array.prototype.forEach.call(el.templates.children, function (c) {
+      c.classList.toggle('active', c.dataset.id === code);
+    });
+    renderColumns();
+    if (state.rawRows.length) mapAndPreview();
+    refreshButtons();
+    loadBadgeTemplate(code).catch(function () {});
+    loadFonts().catch(function () {});
+  }
+
+  // The active spreadsheet columns for the current mode/selection.
+  function activeCols() {
+    if (state.mode === 'badge') return BadgeGen.COLUMNS;
+    return CertGen.COLUMNS[CertGen.TEMPLATES[state.templateId].variant];
+  }
+
+  // Whether a template/academy has been picked in the current mode.
+  function picked() {
+    return state.mode === 'badge' ? !!state.academy : !!state.templateId;
   }
 
   // --- certificate numbering (server-assigned) ------------------------------
@@ -179,9 +263,8 @@
     return Promise.all(pending).then(function () { return { numbers: numbers, tokens: tokens }; });
   }
 
-  function renderColumns(id) {
-    var variant = CertGen.TEMPLATES[id].variant;
-    var cols = CertGen.COLUMNS[variant];
+  function renderColumns() {
+    var cols = activeCols();
     el.colsNote.innerHTML = '<span style="font-size:13px;color:#555;margin-right:4px">Expected columns:</span>';
     cols.forEach(function (c) {
       var chip = document.createElement('span');
@@ -193,19 +276,23 @@
 
   // ---- sample excel ---------------------------------------------------------
 
-  function buildSampleWorkbook(templateId) {
-    var sample = CertGen.sampleRows(templateId);
+  function buildSampleWorkbook() {
+    var badge = state.mode === 'badge';
+    var sample = badge ? BadgeGen.sampleRows() : CertGen.sampleRows(state.templateId);
     var ws = XLSX.utils.aoa_to_sheet([sample.headers].concat(sample.rows));
     ws['!cols'] = sample.headers.map(function () { return { wch: 22 }; });
     var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Certificates');
+    XLSX.utils.book_append_sheet(wb, ws, badge ? 'Badges' : 'Certificates');
     return wb;
   }
 
   function downloadSample(e) {
     e.preventDefault();
-    if (!state.templateId) { setStatus('Pick a template first.', 'err'); return; }
-    XLSX.writeFile(buildSampleWorkbook(state.templateId), 'certificate-template-' + state.templateId + '-sample.xlsx');
+    if (!picked()) { setStatus('Pick ' + (state.mode === 'badge' ? 'an academy' : 'a template') + ' first.', 'err'); return; }
+    var name = state.mode === 'badge'
+      ? 'name-badges-sample.xlsx'
+      : 'certificate-template-' + state.templateId + '-sample.xlsx';
+    XLSX.writeFile(buildSampleWorkbook(), name);
   }
 
   // ---- file handling --------------------------------------------------------
@@ -231,28 +318,33 @@
   }
 
   function mapAndPreview() {
-    if (!state.templateId) { renderPreview(); refreshButtons(); return; }
-    var variant = CertGen.TEMPLATES[state.templateId].variant;
-    state.rows = CertGen.mapRows(state.rawRows, variant);
+    if (!picked()) { renderPreview(); refreshButtons(); return; }
+    if (state.mode === 'badge') {
+      state.rows = BadgeGen.mapRows(state.rawRows);
+    } else {
+      state.rows = CertGen.mapRows(state.rawRows, CertGen.TEMPLATES[state.templateId].variant);
+      renderNumbering();
+    }
     renderPreview();
-    renderNumbering();
     refreshButtons();
   }
 
   function renderPreview() {
     el.preview.innerHTML = '';
     if (!state.rawRows.length) return;
-    if (!state.templateId) {
-      el.preview.innerHTML = '<div class="warn">Choose a template above to map these columns.</div>';
+    if (!picked()) {
+      el.preview.innerHTML = '<div class="warn">Choose ' + (state.mode === 'badge' ? 'an academy' : 'a template') +
+        ' above to map these columns.</div>';
       return;
     }
-    var tpl = CertGen.TEMPLATES[state.templateId];
-    var cols = CertGen.COLUMNS[tpl.variant];
-    var lang = tpl.lang || 'en';
+    var badge = state.mode === 'badge';
+    var cols = activeCols();
+    var lang = badge ? 'ka' : (CertGen.TEMPLATES[state.templateId].lang || 'en');
+    var noun = badge ? 'badge' : 'certificate';
 
     var count = document.createElement('div');
     count.className = 'count';
-    count.textContent = state.rows.length + ' certificate' + (state.rows.length === 1 ? '' : 's') + ' ready';
+    count.textContent = state.rows.length + ' ' + noun + (state.rows.length === 1 ? '' : 's') + ' ready';
     el.preview.appendChild(count);
 
     var table = document.createElement('table');
@@ -295,8 +387,7 @@
   // ---- generate -------------------------------------------------------------
 
   function refreshButtons() {
-    var ready = !!state.templateId && state.rows.length > 0;
-    el.generateBtn.disabled = !ready;
+    el.generateBtn.disabled = !(picked() && state.rows.length > 0);
   }
 
   function setStatus(msg, kind) {
@@ -304,7 +395,55 @@
     el.status.className = 'status' + (kind ? ' ' + kind : '');
   }
 
+  // Show a freshly generated PDF in the preview frame + wire up download/print.
+  function showPdf(bytes, filename) {
+    if (state.pdfUrl) URL.revokeObjectURL(state.pdfUrl);
+    var blob = new Blob([bytes], { type: 'application/pdf' });
+    state.pdfUrl = URL.createObjectURL(blob);
+    el.frame.style.display = 'block';
+    el.frame.src = state.pdfUrl;
+    el.downloadBtn.href = state.pdfUrl;
+    el.downloadBtn.download = filename;
+    el.downloadBtn.classList.remove('disabled');
+    el.printBtn.disabled = false;
+  }
+
+  function resetOutput() {
+    if (state.pdfUrl) { URL.revokeObjectURL(state.pdfUrl); state.pdfUrl = null; }
+    el.frame.style.display = 'none';
+    el.frame.removeAttribute('src');
+    el.downloadBtn.classList.add('disabled');
+    el.downloadBtn.removeAttribute('href');
+    el.printBtn.disabled = true;
+    setStatus('');
+  }
+
+  function generateBadges() {
+    if (!state.academy || !state.rows.length) return;
+    el.generateBtn.disabled = true;
+    setStatus('Generating ' + state.rows.length + ' badge(s)…');
+    Promise.all([loadBadgeTemplate(state.academy), loadFonts()])
+      .then(function (res) {
+        return BadgeGen.generate({
+          academy: state.academy,
+          templateBytes: res[0],
+          fontBytes: res[1],
+          rows: state.rows,
+          PDFLib: PDFLib,
+          fontkit: fontkit
+        });
+      })
+      .then(function (bytes) {
+        showPdf(bytes, 'name-badges-' + state.academy + '.pdf');
+        var sheets = Math.ceil(state.rows.length / BadgeGen.PER_SHEET);
+        setStatus('Done — ' + state.rows.length + ' badge(s) on ' + sheets + ' sheet(s). Preview below.', 'ok');
+      })
+      .catch(function (err) { setStatus('Generation failed: ' + err.message, 'err'); })
+      .finally(function () { el.generateBtn.disabled = false; });
+  }
+
   function generate() {
+    if (state.mode === 'badge') return generateBadges();
     if (!state.templateId || !state.rows.length) return;
     var code = (el.accessCode.value || '').trim();
     if (!code) { setStatus('Enter the staff access code first.', 'err'); el.accessCode.focus(); return; }
@@ -336,15 +475,7 @@
         });
       })
       .then(function (bytes) {
-        if (state.pdfUrl) URL.revokeObjectURL(state.pdfUrl);
-        var blob = new Blob([bytes], { type: 'application/pdf' });
-        state.pdfUrl = URL.createObjectURL(blob);
-        el.frame.style.display = 'block';
-        el.frame.src = state.pdfUrl;
-        el.downloadBtn.href = state.pdfUrl;
-        el.downloadBtn.download = 'certificates-template-' + id + '.pdf';
-        el.downloadBtn.classList.remove('disabled');
-        el.printBtn.disabled = false;
+        showPdf(bytes, 'certificates-template-' + id + '.pdf');
         setStatus('Done — ' + state.rows.length + ' certificate(s) generated (' +
           numbers[0] + (numbers.length > 1 ? ' … ' + numbers[numbers.length - 1] : '') +
           '). Preview below.', 'ok');
@@ -370,18 +501,20 @@
   // ---- wire up --------------------------------------------------------------
 
   function init() {
-    if (!XLSX || !PDFLib || !fontkit || !qrcode || !CertGen) {
+    if (!XLSX || !PDFLib || !fontkit || !qrcode || !CertGen || !BadgeGen) {
       setStatus('Required libraries failed to load. Check the vendor/ files.', 'err');
       return;
     }
-    renderTemplates();
     // restore last-used branch + remembered access code
     var savedBranch = safeStore(function (s) { return s.getItem('certmaker:branch'); });
     if (savedBranch && CertGen.BRANCHES[savedBranch]) el.branch.value = savedBranch;
     var savedCode = safeStore(function (s) { return s.getItem('certmaker:code'); });
     if (savedCode) el.accessCode.value = savedCode;
-    selectTemplate('1');
+    setMode('cert');
 
+    Array.prototype.forEach.call(el.modes.children, function (b) {
+      b.addEventListener('click', function () { if (state.mode !== b.dataset.mode) setMode(b.dataset.mode); });
+    });
     el.browseBtn.addEventListener('click', function () { el.file.click(); });
     el.file.addEventListener('change', function (e) { handleFile(e.target.files[0]); });
     el.sampleLink.addEventListener('click', downloadSample);

@@ -10,13 +10,17 @@
 <body>
   <main class="wrap">
     <header class="head">
-      <h1>Certificate Maker</h1>
-      <p class="sub">Upload an Excel file, pick a template, and generate every certificate as one print-ready PDF.</p>
+      <h1 id="appTitle">Certificate Maker</h1>
+      <p class="sub" id="appSub">Upload an Excel file, pick a template, and generate every certificate as one print-ready PDF.</p>
+      <div class="modes" id="modes">
+        <button type="button" class="mode-btn active" data-mode="cert">Certificates</button>
+        <button type="button" class="mode-btn" data-mode="badge">Name badges</button>
+      </div>
     </header>
 
-    <!-- Step 1: template -->
+    <!-- Step 1: template / academy -->
     <section class="card">
-      <h2><span class="step">1</span> Choose a template</h2>
+      <h2><span class="step">1</span> <span id="pickHeading">Choose a template</span></h2>
       <div class="templates" id="templates"></div>
     </section>
 
@@ -25,7 +29,7 @@
       <h2><span class="step">2</span> Upload your Excel file</h2>
       <div class="cols-note" id="colsNote"></div>
       <p class="hint">
-        Need the right column headers? <a href="#" id="sampleLink">Download a sample Excel</a> for this template,
+        Need the right column headers? <a href="#" id="sampleLink">Download a sample Excel</a>,
         fill it in, and upload it back.
       </p>
       <div class="drop" id="drop">
@@ -39,8 +43,8 @@
       <div id="preview" class="preview"></div>
     </section>
 
-    <!-- Step 3: numbering -->
-    <section class="card">
+    <!-- Step 3: numbering (certificates only) -->
+    <section class="card" id="stepNumbering">
       <h2><span class="step">3</span> Certificate numbering</h2>
       <p class="hint">Numbers are built as <code>L</code> + branch + subject + year + sequence,
         e.g. <code>LVE-2026-0032</code>. Subject (E/A) and year come from the template and dates.
@@ -62,14 +66,14 @@
 
     <!-- Step 4: generate -->
     <section class="card">
-      <h2><span class="step">4</span> Generate &amp; print</h2>
+      <h2><span class="step" id="stepGenNo">4</span> Generate &amp; print</h2>
       <div class="actions">
         <button type="button" id="generateBtn" class="primary" disabled>Generate certificates</button>
         <button type="button" id="printBtn" class="ghost" disabled>Print all</button>
         <a id="downloadBtn" class="ghost disabled" download="certificates.pdf">Download PDF</a>
       </div>
       <div id="status" class="status" role="status"></div>
-      <iframe id="pdfFrame" class="pdf-frame" title="Certificate preview" style="display:none"></iframe>
+      <iframe id="pdfFrame" class="pdf-frame" title="Preview" style="display:none"></iframe>
     </section>
 
     <footer class="foot">
@@ -83,6 +87,7 @@
   <script src="./vendor/fontkit.umd.min.js"></script>
   <script src="./vendor/qrcode.min.js"></script>
   <script src="./js/certgen.js"></script>
+  <script src="./js/badgegen.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>
