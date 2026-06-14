@@ -144,6 +144,25 @@ Notes:
 - A single `Name` column also works — it's split into first/last on the space.
 - The certificate number is **not** a spreadsheet column — it's generated (see above).
 
+## Name badges
+
+`app/js/badgegen.js` generates print-ready **name badges** (8 per A4 sheet, a
+2 × 4 grid) from a list of `{firstName, lastName, age}` rows. It keeps the baked
+artwork (the "levels academy" / "levels art academy" logo) and stamps, centred
+per badge:
+
+- the name on two lines — **Archy EDT Bold**, +50 tracking, dark grey;
+- the age underneath — **BPG LE Studio 02 Caps** with a real **0.25 pt stroke**
+  (fill + outline), in the academy's accent colour (yellow / red).
+
+Two academies map to the two template sheets, matching the certificate subject
+codes: `E` → levels academy (yellow), `A` → levels art academy (red). Colours
+are CMYK, taken straight from the source artwork.
+
+The clean (logo-only) templates in `app/badges/` are built once from the source
+`academy badges.pdf` with `node tools/mk-badge-templates.js`; rebuild them only
+if the badge artwork changes. Render samples with `node tools/badge-render.js`.
+
 ## Project layout
 
 ```
@@ -156,12 +175,17 @@ app/                     ← the deployable site (this whole folder is static)
   fonts/                 ← Red Hat Display Medium + Calibri Light/Bold (.ttf)
   templates/             ← template1.pdf, template2.pdf, template3.pdf
   samples/               ← downloadable example spreadsheets
+  badges/                ← clean name-badge templates (badge-academy/-art.pdf)
+  js/badgegen.js         ← core name-badge generator (shared with the Node tests)
 tools/                   ← dev/test only, NOT needed for deployment
   clean-templates.py     ← strips sample values from templates (keeps watermark)
   test-render.js         ← headless render of sample certificates
   e2e.js                 ← drives the real UI in headless Chromium
   mk-samples.js          ← regenerates the sample spreadsheets
+  mk-badge-templates.js  ← builds app/badges/* from "academy badges.pdf"
+  badge-render.js        ← headless render of sample name badges
 certificate templates(2).pdf ← original source artwork
+academy badges.pdf       ← original source artwork for the name badges
 ```
 
 ## Run locally
